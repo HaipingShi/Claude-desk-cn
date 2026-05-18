@@ -295,13 +295,9 @@ def find_report_event(report: PatchReport, name: str) -> PatchEvent | None:
 
 
 def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
-    launch_event = find_report_event(report, "asar.code_gateway_env_injection")
-    if launch_event and launch_event.status != "passed":
-        return "需要重新运行 install.command", launch_event.message
-
     project_event = find_report_event(report, "runtime.active_project_env_overrides")
     if project_event and project_event.status == "missing" and (project_event.count or 0) > 0:
-        return "项目配置覆盖", project_event.message
+        return "项目级配置覆盖导致异常", project_event.message
 
     messages_event = find_report_event(report, "runtime.gateway_messages_auth_check")
     models_event = find_report_event(report, "runtime.gateway_auth_check")
@@ -311,16 +307,23 @@ def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
         if event and isinstance(event.message, str)
     )
     if re.search(r"status=(401|403)", combined):
-        return "需要重新填 API Key", combined
+        return "共享 API Key 无效或过期", combined
     if re.search(r"status=(url_error|timeout|os_error)", combined):
         return "网关不可达", combined
 
-    code_env_event = find_report_event(report, "runtime.claude_code_gateway_env")
-    if code_env_event and code_env_event.status in {"passed", "applied"}:
-        if messages_event and messages_event.status == "passed":
-            return "已修复", "Code CLI 网关环境已同步，消息接口探测通过。"
-        return "已修复", "Code CLI 网关环境已同步；消息接口探测未阻断。"
+    desktop_event = find_report_event(report, "runtime.desktop_code_env")
+    terminal_event = find_report_event(report, "runtime.terminal_cli_env")
+    if desktop_event and desktop_event.status == "passed" and terminal_event and terminal_event.status == "passed":
+        return "桌面版和 CLI 都正常", "桌面版启动层、共享网关配置、终端 CLI 检查均通过。"
 
+    launch_event = find_report_event(report, "asar.code_gateway_env_injection")
+    if launch_event and launch_event.status != "passed" and terminal_event and terminal_event.status == "passed":
+        return "CLI 正常，桌面版启动层未注入", launch_event.message
+
+    if desktop_event and desktop_event.status == "passed" and terminal_event and terminal_event.status != "passed":
+        return "桌面版正常，CLI 配置可能受影响", terminal_event.message
+
+    code_env_event = find_report_event(report, "runtime.claude_code_gateway_env")
     if code_env_event and "static_sync_supported=false" in code_env_event.message:
         return "需要手动处理凭据", code_env_event.message
 
@@ -3158,33 +3161,70 @@ def claude_code_gateway_env_status(user_home: Path) -> tuple[str, str]:
     )
 
 
-def sync_claude_code_gateway_env(user_home: Path) -> tuple[bool, str, str]:
+def backup_shared_claude_settings(settings: Path) -> str:
+    """写共享 settings 前备份原文件；日志只记录路径，不记录内容。"""
+    if not settings.exists():
+        return "none"
+    backup_dir = settings.parent / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = backup_dir / f"settings.before-zh-CN-{stamp}.json"
+    shutil.copy2(settings, backup)
+    sudo_uid = os.environ.get("SUDO_UID")
+    sudo_gid = os.environ.get("SUDO_GID")
+    if sudo_uid and sudo_gid:
+        try:
+            os.chown(backup, int(sudo_uid), int(sudo_gid))
+        except PermissionError:
+            pass
+    return str(backup)
+
+
+def sync_claude_code_gateway_env(
+    user_home: Path, settings_backup_path: str | None = None
+) -> tuple[bool, str, str, str, str, str]:
     """把第三方推理网关同步到 Claude Code CLI settings.env，解决 Cowork 可用但 Code 401。"""
     gateway = active_gateway_config(user_home)
     if not gateway:
-        return False, "missing", "gateway_config=missing"
+        return False, "missing", "gateway_config=missing", "none", "missing", "settings_not_changed=true"
     base_url = normalize_gateway_base_url(gateway.get("base_url"))
     api_key = gateway.get("api_key")
     credential_mode = gateway_credential_mode(gateway)
     if not base_url:
-        return False, "missing", "gateway_base_url=missing"
+        return False, "missing", "gateway_base_url=missing", "none", "missing", "settings_not_changed=true"
     if credential_mode in {"sso", "credential_helper"}:
         return (
             False,
             "missing",
             f"credential_mode={credential_mode}; static_sync_supported=false; manual_sync_required=true",
+            "none",
+            "missing",
+            "settings_not_changed=true",
         )
     if not isinstance(api_key, str) or not api_key.strip():
-        return False, "missing", "static_api_key=missing"
+        return False, "missing", "static_api_key=missing", "none", "missing", "settings_not_changed=true"
 
     settings = user_home / ".claude/settings.json"
     data: dict[str, Any]
+    before_top_keys: set[str] = set()
+    before_env_keys: set[str] = set()
     if settings.exists():
         try:
             loaded = load_json(settings)
             data = loaded if isinstance(loaded, dict) else {}
+            before_top_keys = set(data.keys())
+            current_env = data.get("env")
+            if isinstance(current_env, dict):
+                before_env_keys = set(current_env.keys())
         except Exception as exc:
-            return False, "missing", f"settings=unreadable; error={exc.__class__.__name__}"
+            return (
+                False,
+                "missing",
+                f"settings=unreadable; error={exc.__class__.__name__}",
+                "none",
+                "missing",
+                "settings_unreadable=true",
+            )
     else:
         data = {}
     env = data.get("env")
@@ -3206,15 +3246,100 @@ def sync_claude_code_gateway_env(user_home: Path) -> tuple[bool, str, str]:
             env[key] = value
             changed = True
 
+    backup_path = "none"
     settings.parent.mkdir(parents=True, exist_ok=True)
     if changed or not settings.exists():
+        backup_path = settings_backup_path or backup_shared_claude_settings(settings)
         save_json(settings, data)
         sudo_uid = os.environ.get("SUDO_UID")
         sudo_gid = os.environ.get("SUDO_GID")
         if sudo_uid and sudo_gid:
             os.chown(settings, int(sudo_uid), int(sudo_gid))
     status, message = claude_code_gateway_env_status(user_home)
-    return changed, status, message
+    after_top_keys = set(data.keys())
+    after_env_keys = set(env.keys())
+    removed_top_keys = sorted(before_top_keys - after_top_keys)
+    removed_env_keys = sorted(before_env_keys - after_env_keys)
+    protected_top_keys = sorted(before_top_keys & after_top_keys)
+    merge_safe = not removed_top_keys and not removed_env_keys
+    merge_message = (
+        f"settings_exists_before={str(bool(before_top_keys or before_env_keys)).lower()}; "
+        f"removed_top_keys={','.join(removed_top_keys) or 'none'}; "
+        f"removed_env_keys={','.join(removed_env_keys) or 'none'}; "
+        f"protected_top_keys={','.join(protected_top_keys[:12]) or 'none'}; "
+        f"updated_env_keys={','.join(desired.keys())}; api_key_not_logged=true"
+    )
+    return changed, status, message, backup_path, "passed" if merge_safe else "missing", merge_message
+
+
+def desktop_code_env_status(app: Path, user_home: Path) -> tuple[str, str]:
+    """检查桌面版 Code 启动层和共享 settings env 是否同时就绪。"""
+    injection_ok = check_claude_code_gateway_env_injection(app)
+    env_status, env_message = claude_code_gateway_env_status(user_home)
+    status = "passed" if injection_ok and env_status == "passed" else "missing"
+    return (
+        status,
+        (
+            f"launch_injection={str(injection_ok).lower()}; "
+            f"shared_env_status={env_status}; {env_message}"
+        ),
+    )
+
+
+def terminal_cli_env_status(user_home: Path) -> tuple[str, str]:
+    """检查终端 Claude Code CLI 是否存在，并记录它将共享的配置状态。"""
+    env_status, env_message = claude_code_gateway_env_status(user_home)
+    which = run(["zsh", "-lc", "command -v claude || true"], check=False).stdout.strip()
+    if not which:
+        return "missing", f"cli_path=missing; shared_env_status={env_status}; {env_message}"
+    version = run(["zsh", "-lc", "claude --version 2>&1 || true"], check=False).stdout.strip()
+    version = re.sub(r"\s+", " ", version)[:120] or "unknown"
+    status = "passed" if env_status == "passed" else "missing"
+    return (
+        status,
+        (
+            f"cli_path={which}; cli_version={version}; "
+            f"shared_settings={user_home / '.claude/settings.json'}; shared_env_status={env_status}; {env_message}"
+        ),
+    )
+
+
+def vscode_claude_extension_status(user_home: Path) -> tuple[str, str, int]:
+    """检测 VS Code/Cursor Claude 插件，不读取任何凭据。"""
+    candidates: list[Path] = []
+    for base in [
+        user_home / ".vscode/extensions",
+        user_home / ".cursor/extensions",
+        user_home / "Library/Application Support/Code/User/globalStorage",
+        user_home / "Library/Application Support/Cursor/User/globalStorage",
+    ]:
+        if not base.exists():
+            continue
+        for path in base.glob("*claude*"):
+            candidates.append(path)
+        anthropic_dir = base / "anthropic.claude-code"
+        if anthropic_dir.exists():
+            candidates.append(anthropic_dir)
+    unique = sorted({path.resolve() for path in candidates})
+    details: list[str] = []
+    for path in unique[:6]:
+        version = "unknown"
+        package_json = path / "package.json"
+        if package_json.exists():
+            try:
+                package = load_json(package_json)
+                if isinstance(package, dict):
+                    version = str(package.get("version") or "unknown")
+            except Exception:
+                version = "unreadable"
+        details.append(f"{path.name}:version={version}")
+    if unique:
+        return (
+            "passed",
+            f"extensions={';'.join(details)}; shared_settings_possible=true; shared_settings={user_home / '.claude/settings.json'}",
+            len(unique),
+        )
+    return "missing", "extensions=missing; shared_settings_possible=unknown", 0
 
 
 def read_claude_code_context_window(user_home: Path) -> tuple[int | None, str]:
@@ -4020,6 +4145,28 @@ def check_runtime_invariants(
         code_env_message,
         required=False,
     )
+    desktop_env_status, desktop_env_message = desktop_code_env_status(Path(report.app), user_home)
+    report.add(
+        "runtime.desktop_code_env",
+        desktop_env_status,
+        desktop_env_message,
+        required=False,
+    )
+    terminal_env_status, terminal_env_message = terminal_cli_env_status(user_home)
+    report.add(
+        "runtime.terminal_cli_env",
+        terminal_env_status,
+        terminal_env_message,
+        required=False,
+    )
+    vscode_status, vscode_message, vscode_count = vscode_claude_extension_status(user_home)
+    report.add(
+        "runtime.vscode_claude_extension",
+        vscode_status,
+        vscode_message,
+        count=vscode_count,
+        required=False,
+    )
     project_env_status, project_env_message, project_env_count = project_env_override_status(user_home)
     report.add(
         "runtime.active_project_env_overrides",
@@ -4260,6 +4407,7 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         f"terminated={terminated}",
         required=False,
     )
+    settings_backup_path = backup_shared_claude_settings(args.user_home / ".claude/settings.json")
     preferred_model, model_metadata = set_claude_code_dynamic_defaults(args.user_home)
     report.add(
         "runtime.provider_default_model",
@@ -4272,7 +4420,26 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
     report.add("runtime.gateway_auth_check", gateway_status, gateway_message, required=False)
     messages_status, messages_message = gateway_messages_auth_probe(args.user_home, preferred_model)
     report.add("runtime.gateway_messages_auth_check", messages_status, messages_message, required=False)
-    code_env_changed, code_env_status, code_env_message = sync_claude_code_gateway_env(args.user_home)
+    (
+        code_env_changed,
+        code_env_status,
+        code_env_message,
+        settings_backup_path,
+        merge_status,
+        merge_message,
+    ) = sync_claude_code_gateway_env(args.user_home, settings_backup_path)
+    report.add(
+        "runtime.shared_settings_backup_path",
+        "passed",
+        f"path={settings_backup_path}; contains_secrets=true; do_not_upload_backup=true",
+        required=False,
+    )
+    report.add(
+        "runtime.shared_settings_merge_safe",
+        merge_status,
+        merge_message,
+        required=False,
+    )
     report.add(
         "runtime.claude_code_gateway_env",
         "applied" if code_env_changed else code_env_status,
@@ -4288,6 +4455,28 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
             if gateway_env_injection_ok
             else "当前 Claude.app 缺少启动层网关 env 注入补丁；请重新运行 install.command 后再测试 Code"
         ),
+        required=False,
+    )
+    desktop_env_status, desktop_env_message = desktop_code_env_status(args.app, args.user_home)
+    report.add(
+        "runtime.desktop_code_env",
+        desktop_env_status,
+        desktop_env_message,
+        required=False,
+    )
+    terminal_env_status, terminal_env_message = terminal_cli_env_status(args.user_home)
+    report.add(
+        "runtime.terminal_cli_env",
+        terminal_env_status,
+        terminal_env_message,
+        required=False,
+    )
+    vscode_status, vscode_message, vscode_count = vscode_claude_extension_status(args.user_home)
+    report.add(
+        "runtime.vscode_claude_extension",
+        vscode_status,
+        vscode_message,
+        count=vscode_count,
         required=False,
     )
     provider_context_window = context_window_from_metadata(model_metadata)
@@ -4458,6 +4647,7 @@ def main() -> int:
         print(f"[dry-run] Would set Claude config locale under: {args.user_home}")
     else:
         set_user_locale(args.user_home)
+        settings_backup_path = backup_shared_claude_settings(args.user_home / ".claude/settings.json")
         preferred_model, model_metadata = set_claude_code_dynamic_defaults(args.user_home)
         report.add(
             "runtime.provider_default_model",
@@ -4490,11 +4680,52 @@ def main() -> int:
             ),
             required=False,
         )
-        code_env_changed, code_env_status, code_env_message = sync_claude_code_gateway_env(args.user_home)
+        (
+            code_env_changed,
+            code_env_status,
+            code_env_message,
+            settings_backup_path,
+            merge_status,
+            merge_message,
+        ) = sync_claude_code_gateway_env(args.user_home, settings_backup_path)
+        report.add(
+            "runtime.shared_settings_backup_path",
+            "passed",
+            f"path={settings_backup_path}; contains_secrets=true; do_not_upload_backup=true",
+            required=False,
+        )
+        report.add(
+            "runtime.shared_settings_merge_safe",
+            merge_status,
+            merge_message,
+            required=False,
+        )
         report.add(
             "runtime.claude_code_gateway_env",
             "applied" if code_env_changed else code_env_status,
             code_env_message,
+            required=False,
+        )
+        desktop_env_status, desktop_env_message = desktop_code_env_status(patched_app, args.user_home)
+        report.add(
+            "runtime.desktop_code_env",
+            desktop_env_status,
+            desktop_env_message,
+            required=False,
+        )
+        terminal_env_status, terminal_env_message = terminal_cli_env_status(args.user_home)
+        report.add(
+            "runtime.terminal_cli_env",
+            terminal_env_status,
+            terminal_env_message,
+            required=False,
+        )
+        vscode_status, vscode_message, vscode_count = vscode_claude_extension_status(args.user_home)
+        report.add(
+            "runtime.vscode_claude_extension",
+            vscode_status,
+            vscode_message,
+            count=vscode_count,
             required=False,
         )
         provider_context_window = context_window_from_metadata(model_metadata)

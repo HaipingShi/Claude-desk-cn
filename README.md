@@ -59,7 +59,7 @@ sudo /usr/bin/python3 patch_claude_zh_cn.py --user-home "$HOME" --launch
 repair_code_runtime.command
 ```
 
-它不需要 sudo，不替换 `/Applications/Claude.app`，会退出 Claude、终止旧 Code 子进程、同步当前“配置第三方推理”里的网关环境，并扫描最近 Code 会话项目里的 `.env*` 和 `.claude/settings*.json` 是否覆盖了旧网关或旧 Key。
+它不需要 sudo，不替换 `/Applications/Claude.app`，会退出 Claude、终止旧 Code 子进程、同步当前“配置第三方推理”里的网关环境，并扫描最近 Code 会话项目里的 `.env*` 和 `.claude/settings*.json` 是否覆盖了旧网关或旧 Key。同步共享的 `~/.claude/settings.json` 前会先备份，写入时只合并必要的 `env` 字段，不删除终端 CLI、VS Code 插件、hooks、statusLine、enabledPlugins 等已有配置。
 
 所有脚本都会写日志到项目目录：
 
@@ -69,7 +69,7 @@ Logs/patch-report-YYYYMMDD-HHMMSS.json
 Logs/command-latest.log
 ```
 
-如果修复后仍失败，把 `Logs/latest.json` 和 `Logs/command-latest.log` 发回来即可。日志只记录 Claude 版本、补丁点、网关 endpoint、认证方案、环境是否匹配、项目级覆盖类型和错误状态，不记录 API Key、token 或完整对话内容。
+如果修复后仍失败，把 `Logs/latest.json` 和 `Logs/command-latest.log` 发回来即可。日志只记录 Claude 版本、补丁点、网关 endpoint、认证方案、环境是否匹配、项目级覆盖类型和错误状态，不记录 API Key、token 或完整对话内容。日志会同时记录桌面版 Code、终端 `claude` CLI 和 VS Code Claude 插件状态，用来确认修桌面版时没有把 CLI/插件配置搞坏。
 
 ## 已实现能力与注意事项速览
 
@@ -84,7 +84,8 @@ Logs/command-latest.log
 - Claude Desktop 每次更新后都要重新运行补丁；如果新版 bundle 结构变化，安装会因 invariant 失败而中止，不会覆盖成半残 app。
 - 已适配 Claude Desktop `1.6608.2` 与 `1.7196.0` 的共享模型选择器和第三方模型校验开关；后续版本如再次变动，优先看 `Logs/latest.json` 的失败项。
 - `api.kimi.com` 健康横幅补丁只隐藏旧健康检查误报，不保证第三方网关真实请求一定成功；真实请求仍由网关配置、网络和上游模型决定。
-- 如果 Cowork 能发消息但 Code 报 `401 API Key invalid`，只运行 `repair_code_runtime.command`。这类问题通常不是前端菜单补丁失效，而是 Code CLI 使用的 `~/.claude/settings.json > env` 没有同步到当前第三方推理配置。日志里的 `runtime.claude_code_gateway_env` 会检查 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY` 是否与当前网关配置一致，并记录当前是 `static_key`、`credential_helper` 还是 `sso`，日志不会记录密钥。
+- 如果 Cowork 能发消息但 Code 报 `401 API Key invalid`，只运行 `repair_code_runtime.command`。这类问题通常不是前端菜单补丁失效，而是 Code CLI 使用的 `~/.claude/settings.json > env` 没有同步到当前第三方推理配置。日志里的 `runtime.claude_code_gateway_env` 会检查 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY` 是否与当前网关配置一致，并记录当前是 `static_key`、`credential_helper` 还是 `sso`，日志不会记录密钥。同步前会写 `runtime.shared_settings_backup_path`，同步后会写 `runtime.shared_settings_merge_safe`，确认没有删掉 CLI/插件已有配置。
+- 桌面版、终端 CLI、VS Code 插件继续共享 `~/.claude/settings.json`，不做隔离。脚本会新增 `runtime.desktop_code_env`、`runtime.terminal_cli_env` 和 `runtime.vscode_claude_extension`：如果桌面版正常但 CLI 可能受影响，或 CLI 正常但桌面版启动层未注入，`runtime.repair_conclusion` 会直接写出分层结论。
 - 如果 `runtime.gateway_messages_auth_check=passed`、`runtime.claude_code_gateway_env=passed` 但新开的 Code 会话仍然 401，重点看 `asar.code_gateway_env_injection`。这个补丁负责让 Claude Desktop 拉起 Code 子进程时动态读取 `~/.claude/settings.json` 的网关环境。缺失时 `repair_code_runtime.command` 会提示重新运行 `install.command`，因为只改用户配置不能修复 App 启动层。
 - `runtime.gateway_auth_check` 只探测 `/v1/models`；`runtime.gateway_messages_auth_check` 会按当前认证方案（`bearer` 或 `x-api-key`）用极小的 `/v1/messages` 请求探测真实发消息接口。如果前者通过、后者 401/403，说明模型列表可读但推理接口拒绝当前 Key，需要在“配置第三方推理”里重新保存 API Key 或检查上游 Key 权限。如果日志显示 `credential_mode=credential_helper` 或 `credential_mode=sso`，脚本不会伪造静态 Key，需要按该网关的 helper/SSO 方案单独处理。
 - 如果某个文件夹里的 Code 会话 401，但另一个文件夹同一个插件能运行，优先看 `runtime.active_project_env_overrides`。`repair_code_runtime.command` 会扫描最近未归档 Code 会话的项目目录，检查 `.claude/settings*.json`、`.env*` 是否覆盖了 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_API_KEY` / 认证类 `ANTHROPIC_CUSTOM_HEADERS`。日志只记录文件路径和 mismatch 类型，不记录密钥。
@@ -128,7 +129,7 @@ sudo /usr/bin/python3 patch_claude_zh_cn.py --user-home "$HOME" --prepare-offici
 ## 文件说明
 
 - `install.command`：Mac 双击安装入口。
-- `repair_code_runtime.command`：Mac 双击修复 Code 运行时入口，不替换 app，会同步第三方网关到 `~/.claude/settings.json`，并写入 `Logs/latest.json` 与 `Logs/command-latest.log`。
+- `repair_code_runtime.command`：Mac 双击修复 Code 运行时入口，不替换 app，会备份并合并同步第三方网关到 `~/.claude/settings.json`，同时检查桌面版 Code、终端 CLI 和 VS Code Claude 插件状态，并写入 `Logs/latest.json` 与 `Logs/command-latest.log`。
 - `prepare_official_update.command`：安装官方原版前的准备入口，会解除当前汉化版的覆盖阻碍，但不删除、不移动 app。
 - `patch_claude_zh_cn.py`：执行补丁、备份、重签名和验证的主脚本。
 - `docs/implementation.md`：当前功能、实现原理和维护逻辑说明。
@@ -257,7 +258,7 @@ Failed to authenticate. API Error: 401 The API Key appears to be invalid or may 
 
 - `runtime.gateway_auth_check` 显示 `status=401` 或 `status=403`：先在 Claude 的“配置第三方推理”里重新填写该电脑自己的网关 API 密钥，再运行 `repair_code_runtime.command`。
 - `runtime.gateway_auth_check` 通过，但 `runtime.gateway_messages_auth_check` 显示 `status=401` 或 `status=403`：说明模型列表可读，但真实发消息接口拒绝当前 Key 或当前认证方案不对。检查“网关认证方案”是 `bearer` 还是 `x-api-key`，重新保存 API Key 后再运行 `repair_code_runtime.command`。
-- `runtime.gateway_auth_check` 和 `runtime.gateway_messages_auth_check` 都通过，但 Code 仍 401：运行 `repair_code_runtime.command`，把当前第三方推理配置同步到 Claude Code CLI 的 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_API_KEY`。
+- `runtime.gateway_auth_check` 和 `runtime.gateway_messages_auth_check` 都通过，但 Code 仍 401：运行 `repair_code_runtime.command`，把当前第三方推理配置同步到 Claude Code CLI 的 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_API_KEY`。同步会保留共享 settings 里的 CLI/VS Code 配置，并在 `runtime.desktop_code_env` / `runtime.terminal_cli_env` 中说明桌面版和终端 CLI 哪一边异常。
 - 如果上一项同步也通过，但 `asar.code_gateway_env_injection=missing`：重新运行 `install.command`。这是 App 启动层缺补丁，Code 子进程仍会拿官方 OAuth/空 API Key 环境。
 - 只有某个项目 401：看 `runtime.active_project_env_overrides`，检查该项目是否有旧 `.env` 或 `.claude/settings*.json` 覆盖全局网关。
 
