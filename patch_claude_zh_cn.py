@@ -252,6 +252,81 @@ def write_patch_report(report: PatchReport) -> Path:
     return latest_path
 
 
+def infer_mode_from_argv(argv: list[str]) -> str:
+    if "--repair-code-runtime" in argv:
+        return "repair-code-runtime"
+    if "--prepare-official-update" in argv:
+        return "prepare-official-update"
+    if "--diagnose" in argv:
+        return "diagnose"
+    if "--dry-run" in argv:
+        return "dry-run"
+    return "install"
+
+
+def infer_app_from_argv(argv: list[str]) -> Path:
+    for index, item in enumerate(argv):
+        if item == "--app" and index + 1 < len(argv):
+            return Path(argv[index + 1])
+        if item.startswith("--app="):
+            return Path(item.split("=", 1)[1])
+    return APP_DEFAULT
+
+
+def write_failure_report(mode: str, app: Path, exc: BaseException) -> None:
+    report = PatchReport(str(app), get_claude_version(app), mode)
+    report.add(
+        "script.exception",
+        "failed",
+        f"type={exc.__class__.__name__}; message={str(exc)}",
+        required=True,
+    )
+    try:
+        write_patch_report(report)
+    except Exception as report_exc:
+        print(f"Failed to write patch report: {report_exc}", file=sys.stderr)
+
+
+def find_report_event(report: PatchReport, name: str) -> PatchEvent | None:
+    for event in reversed(report.events):
+        if event.name == name:
+            return event
+    return None
+
+
+def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
+    launch_event = find_report_event(report, "asar.code_gateway_env_injection")
+    if launch_event and launch_event.status != "passed":
+        return "需要重新运行 install.command", launch_event.message
+
+    project_event = find_report_event(report, "runtime.active_project_env_overrides")
+    if project_event and project_event.status == "missing" and (project_event.count or 0) > 0:
+        return "项目配置覆盖", project_event.message
+
+    messages_event = find_report_event(report, "runtime.gateway_messages_auth_check")
+    models_event = find_report_event(report, "runtime.gateway_auth_check")
+    combined = " ".join(
+        event.message
+        for event in [messages_event, models_event]
+        if event and isinstance(event.message, str)
+    )
+    if re.search(r"status=(401|403)", combined):
+        return "需要重新填 API Key", combined
+    if re.search(r"status=(url_error|timeout|os_error)", combined):
+        return "网关不可达", combined
+
+    code_env_event = find_report_event(report, "runtime.claude_code_gateway_env")
+    if code_env_event and code_env_event.status in {"passed", "applied"}:
+        if messages_event and messages_event.status == "passed":
+            return "已修复", "Code CLI 网关环境已同步，消息接口探测通过。"
+        return "已修复", "Code CLI 网关环境已同步；消息接口探测未阻断。"
+
+    if code_env_event and "static_sync_supported=false" in code_env_event.message:
+        return "需要手动处理凭据", code_env_event.message
+
+    return "脚本异常", "未能确认 Code CLI 网关环境已经同步。"
+
+
 def find_frontend_bundles(app: Path) -> dict[str, Path | None]:
     assets_dir = app / FRONTEND_ASSETS_REL
     result: dict[str, Path | None] = {"index": None, "code": None}
@@ -2210,6 +2285,65 @@ def patch_custom3p_model_validation(app: Path) -> bool:
     return True
 
 
+def patch_claude_code_gateway_env_injection(app: Path) -> bool:
+    """让 Claude Desktop 启动 Code 子进程时动态继承 ~/.claude/settings.json 的网关 env。"""
+    helper = (
+        'function zhClaudeCodeGatewayEnv(){try{'
+        'const e=tA.join(Bi.homedir(),".claude","settings.json");'
+        'if(!jA.existsSync(e))return{};'
+        'const A=JSON.parse(jA.readFileSync(e,"utf8")),t=A&&A.env;'
+        'if(!t||typeof t!="object")return{};'
+        'const i={},r=["ANTHROPIC_BASE_URL","ANTHROPIC_AUTH_TOKEN","ANTHROPIC_API_KEY",'
+        '"ANTHROPIC_CUSTOM_HEADERS","CLAUDE_CODE_ATTRIBUTION_HEADER",'
+        '"CLAUDE_CODE_DISABLE_TERMINAL_TITLE","CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"];'
+        'for(const n of r)typeof t[n]=="string"&&t[n]&&(i[n]=t[n]);'
+        'return i.ANTHROPIC_BASE_URL&&(i.ANTHROPIC_AUTH_TOKEN||i.ANTHROPIC_API_KEY)'
+        '&&(i.CLAUDE_CODE_OAUTH_TOKEN="",i.CLAUDE_CODE_ENTRYPOINT="claude-desktop-3p"),i'
+        '}catch{return{}}}'
+    )
+    try:
+        content = read_asar_text(app, ASAR_PATCH_TARGET)
+    except Exception as exc:
+        raise SystemExit(f"读取 app.asar 失败：{exc}") from exc
+
+    helper_present = "function zhClaudeCodeGatewayEnv()" in content
+    spread_present = "...t.sessionEnvVars(),...zhClaudeCodeGatewayEnv()}}" in content
+    if helper_present and spread_present:
+        print("Claude Code gateway env injection already patched in app.asar")
+        return True
+
+    replacements: dict[str, str] = {}
+    if not helper_present:
+        source = "function lj(e){"
+        if source not in content:
+            print("Claude Code gateway env injection target function not found in app.asar")
+            return False
+        replacements[source] = helper + source
+    if not spread_present:
+        source = "...t.sessionEnvVars()}}"
+        if source not in content:
+            print("Claude Code gateway env injection spread point not found in app.asar")
+            return False
+        replacements[source] = "...t.sessionEnvVars(),...zhClaudeCodeGatewayEnv()}}"
+
+    count = patch_asar_file_with_replacements(app, ASAR_PATCH_TARGET, replacements)
+    if count:
+        print(f"Patched Claude Code gateway env injection in app.asar: {count} replacements")
+    return count > 0 or check_claude_code_gateway_env_injection(app)
+
+
+def check_claude_code_gateway_env_injection(app: Path) -> bool:
+    try:
+        content = read_asar_text(app, ASAR_PATCH_TARGET)
+    except Exception:
+        return False
+    return (
+        "function zhClaudeCodeGatewayEnv()" in content
+        and "...t.sessionEnvVars(),...zhClaudeCodeGatewayEnv()}}" in content
+        and 'tA.join(Bi.homedir(),".claude","settings.json")' in content
+    )
+
+
 def walk_asar_file_entries(header: dict[str, Any]) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
 
@@ -3818,6 +3952,13 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
 
     custom3p_ok = check_custom3p_validation_patched(app)
     report.add("asar.custom3p_validation", "passed" if custom3p_ok else "missing", required=require)
+    gateway_env_injection_ok = check_claude_code_gateway_env_injection(app)
+    report.add(
+        "asar.code_gateway_env_injection",
+        "passed" if gateway_env_injection_ok else "missing",
+        "Code 子进程启动层必须动态读取 ~/.claude/settings.json 的网关 env，避免 UI 新会话继续用官方 OAuth 环境",
+        required=require,
+    )
 
     signature = run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app)], check=False)
     report.add(
@@ -4095,6 +4236,17 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
     report = PatchReport(str(args.app), get_claude_version(args.app), "repair-code-runtime")
     if args.dry_run:
         print("[dry-run] Claude will not be quit and user config will not be changed.")
+        gateway_env_injection_ok = check_claude_code_gateway_env_injection(args.app)
+        report.add(
+            "asar.code_gateway_env_injection",
+            "passed" if gateway_env_injection_ok else "missing",
+            (
+                "Code 子进程启动层已动态注入 ~/.claude/settings.json 网关 env"
+                if gateway_env_injection_ok
+                else "当前 Claude.app 缺少启动层网关 env 注入补丁；请重新运行 install.command 后再测试 Code"
+            ),
+            required=False,
+        )
         check_runtime_invariants(args.user_home, report, require=False)
         write_patch_report(report)
         print_report_summary(report)
@@ -4125,6 +4277,17 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         "runtime.claude_code_gateway_env",
         "applied" if code_env_changed else code_env_status,
         code_env_message,
+        required=False,
+    )
+    gateway_env_injection_ok = check_claude_code_gateway_env_injection(args.app)
+    report.add(
+        "asar.code_gateway_env_injection",
+        "passed" if gateway_env_injection_ok else "missing",
+        (
+            "Code 子进程启动层已动态注入 ~/.claude/settings.json 网关 env"
+            if gateway_env_injection_ok
+            else "当前 Claude.app 缺少启动层网关 env 注入补丁；请重新运行 install.command 后再测试 Code"
+        ),
         required=False,
     )
     provider_context_window = context_window_from_metadata(model_metadata)
@@ -4168,8 +4331,19 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         required=False,
     )
     check_runtime_invariants(args.user_home, report, require=False)
+    conclusion, conclusion_detail = summarize_repair_conclusion(report)
+    report.add(
+        "runtime.repair_conclusion",
+        "passed" if conclusion == "已修复" else "missing",
+        f"result={conclusion}; detail={conclusion_detail}",
+        required=False,
+    )
     write_patch_report(report)
     print_report_summary(report)
+    print()
+    print(f"修复结论：{conclusion}")
+    if conclusion_detail:
+        print(f"说明：{conclusion_detail}")
     return 0
 
 
@@ -4265,6 +4439,13 @@ def main() -> int:
     report.add(
         "asar.custom3p_validation.patch",
         "applied" if model_validation_patched else "missing",
+        required=False,
+    )
+    gateway_env_injection_patched = patch_claude_code_gateway_env_injection(patched_app)
+    report.add(
+        "asar.code_gateway_env_injection.patch",
+        "applied" if gateway_env_injection_patched else "missing",
+        "Code 子进程启动环境会在运行时从 ~/.claude/settings.json 注入当前网关 env",
         required=False,
     )
     patch_native_menu_role_labels(patched_app)
@@ -4367,7 +4548,8 @@ def main() -> int:
     if not check_frontend_invariants(patched_app, report, require=True):
         write_patch_report(report)
         print_report_summary(report)
-        raise SystemExit("Required frontend invariants failed. Original Claude.app was left untouched.")
+        print("Required frontend invariants failed. Original Claude.app was left untouched.", file=sys.stderr)
+        return 1
 
     backup = backup_and_replace(args.app, patched_app, args.dry_run)
     if not args.dry_run:
@@ -4384,5 +4566,23 @@ def main() -> int:
     return 0
 
 
+def safe_main() -> int:
+    try:
+        return main()
+    except SystemExit as exc:
+        code = exc.code
+        if code not in (None, 0):
+            app = infer_app_from_argv(sys.argv[1:])
+            mode = infer_mode_from_argv(sys.argv[1:])
+            write_failure_report(mode, app, exc)
+        raise
+    except BaseException as exc:
+        app = infer_app_from_argv(sys.argv[1:])
+        mode = infer_mode_from_argv(sys.argv[1:])
+        write_failure_report(mode, app, exc)
+        print(f"脚本异常：{exc.__class__.__name__}: {exc}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(safe_main())

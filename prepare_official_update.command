@@ -3,6 +3,17 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PYTHON="/usr/bin/python3"
+LOG_DIR="$DIR/Logs"
+mkdir -p "$LOG_DIR"
+STAMP="$(date +"%Y%m%d-%H%M%S")"
+COMMAND_LOG="$LOG_DIR/command-$STAMP.log"
+LATEST_COMMAND_LOG="$LOG_DIR/command-latest.log"
+touch "$COMMAND_LOG" "$LATEST_COMMAND_LOG"
+exec > >(tee "$COMMAND_LOG" "$LATEST_COMMAND_LOG") 2>&1
+
+echo "命令日志: $LATEST_COMMAND_LOG"
+echo "开始时间: $(date "+%Y-%m-%d %H:%M:%S")"
+echo
 
 if [ ! -x "$PYTHON" ]; then
   PYTHON="$(command -v python3)"

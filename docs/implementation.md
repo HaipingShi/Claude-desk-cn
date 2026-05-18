@@ -264,35 +264,44 @@ Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化
 - Cowork 健康横幅：新版 `EQt/yW.Unreachable` 结构下，对 `api.kimi.com` 旧健康状态做隐藏处理。
 - Code 页面：`zm()` 内的 `W/Q/pe/me` 负责模型菜单，`hm()/gm()` 和 `xs` 负责强度菜单；没有当前界面临时选择时，显示默认仍是 `Opus 4.71M`，强度固定为 `max`。真实请求模型由 `zhRuntimeModelFor()` 映射到 provider 默认模型，启动对象必须使用 `model:zhRuntimeModel`，不能再把显示用的 `model:W` 直接传入。强度必须无条件生成五档，不再依赖 `De`、`Fe`、`Oe`、旧 `ccd-effort-level` 缓存或本机环境。
 
-### 9. 升级诊断日志与必过 invariant
+### 9. 升级诊断日志、修复入口与必过 invariant
 
 新版 Claude 经常改 bundle 文件名和压缩变量名。为了避免补丁点失效后仍替换 `/Applications/Claude.app`，脚本现在有两套诊断机制：
 
 1. 安装流程会在替换原 app 前运行 `check_frontend_invariants()`。必过项包括 Cowork 两模型、Cowork 五档强度、Cowork 强度同步、Cowork runtime 模型映射、Code 两模型、Code 五档强度、Code runtime 模型映射、Code 启动对象不得直传 `model:W`、Code 默认绕过权限、Code Context Usage 文本窗口覆盖、Code 实时上下文弹窗窗口覆盖、已知未汉化文案检查、开发者菜单汉化检查、第三方推理设置页汉化检查、Kimi 健康横幅隐藏、JS 语法检查、第三方模型校验补丁和签名验证。
-2. `--diagnose` 只读模式会检查当前 `/Applications/Claude.app`，并写入诊断日志，不修改任何文件。
+2. Python 内部仍保留 `--diagnose` 只读模式，供维护者手动检查当前 `/Applications/Claude.app`。但日常用户入口不再提供 `diagnose.command`，避免在 Code 401 场景下让用户误跑只读诊断而不是修复。
 
-为了避免用户在其他电脑手敲路径时误跑安装流程，项目根目录提供 `diagnose.command`。它等价于运行 `patch_claude_zh_cn.py --diagnose --app /Applications/Claude.app --user-home "$HOME"`，只生成 `Logs/latest.json`，不会 sudo、不会替换 app，也不会修改 API、网关或模型配置。
+日常入口收敛为三类：
 
-如果 `diagnose.command` 显示前端补丁和网关探测都通过，但实际现象是 Cowork 可用、Code 模式报 401 或继续拿旧上下文窗口，项目根目录提供 `repair_code_runtime.command`。它等价于运行 `patch_claude_zh_cn.py --repair-code-runtime --app /Applications/Claude.app --user-home "$HOME"`，不替换 app、不需要 sudo，只修复用户态 Claude Code 运行时配置：
+- `install.command`：安装汉化，并同步 Code CLI 网关环境、上下文窗口、默认模型和强度。
+- `repair_code_runtime.command`：Code 401 或 Cowork 可用但 Code 不可用时唯一需要运行的入口。
+- `prepare_official_update.command`：官方 DMG 覆盖安装前解除权限，不处理网关或汉化。
+
+`repair_code_runtime.command` 等价于运行 `patch_claude_zh_cn.py --repair-code-runtime --app /Applications/Claude.app --user-home "$HOME"`，不替换 app、不需要 sudo，只修复用户态 Claude Code 运行时配置：
 
 - 退出 Claude 并终止遗留 Claude Code 子进程。
 - 从当前第三方推理配置读取网关地址和静态 API Key。
 - 写入 `~/.claude/settings.json > env` 的 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY`。
 - 继续同步真实 provider 默认模型、`effortLevel=max` 和 `tengu_hawthorn_window`。
 - 迁移旧会话里的 Opus 显示别名到真实 provider 模型。
-
-如果只有某个项目 Code 401，另一个项目正常，可以把该项目文件夹拖到 `diagnose.command` 上。脚本会把该路径传给 `patch_claude_zh_cn.py --diagnose --project <path>`。这个模式仍然只读，只检查该项目里的 `.claude/settings*.json` 和 `.env*` 是否覆盖 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY` 或认证类 `ANTHROPIC_CUSTOM_HEADERS`，日志事件名为 `runtime.project_env_overrides`。
+- 扫描最近未归档 Code 会话的项目目录，检查 `.claude/settings*.json` 和 `.env*` 是否覆盖旧网关或旧 Key。
+- 检查 `asar.code_gateway_env_injection`。如果直接 `/v1/messages` 探测通过、`~/.claude/settings.json` 也同步正确，但 Code 新会话仍 401，通常说明 App 启动层仍在用官方 OAuth/空 API Key 环境拉起 Code 子进程。这个场景不能只靠 repair 修用户配置，必须重新运行 `install.command` 写入 app.asar 启动层补丁。
+- 修复后立即执行 `/v1/models` 与极小 `/v1/messages` 探测，并写入 `runtime.repair_conclusion`，结论只允许是 `已修复`、`需要重新运行 install.command`、`需要重新填 API Key`、`项目配置覆盖`、`网关不可达`、`需要手动处理凭据` 或 `脚本异常`。
 
 日志路径：
 
 ```text
 Logs/latest.json
 Logs/patch-report-YYYYMMDD-HHMMSS.json
+Logs/command-latest.log
+Logs/command-YYYYMMDD-HHMMSS.log
 ```
 
-`Logs/` 固定在项目根目录，也就是 `install.command` 同级。这样把项目复制到其他电脑后，异常机器生成的日志也在同一个文件夹里，方便直接打包发回。脚本通过 sudo 运行时，会把 `Logs/` 及生成的 JSON 文件 owner 改回当前用户，避免日志文件变成 root-owned。
+`Logs/` 固定在项目根目录，也就是 `install.command` 同级。这样把项目复制到其他电脑后，异常机器生成的日志也在同一个文件夹里，方便直接打包发回。三个 `.command` 外层都会先写 `command-latest.log`，即使 Python 参数错误、权限错误、app 路径不存在或用户中途关闭窗口，也能留下 shell transcript。Python 内层还有顶层异常兜底，异常时也会写 `Logs/latest.json`，事件名为 `script.exception`。脚本通过 sudo 运行时，会把 `Logs/` 及生成的 JSON 文件 owner 改回当前用户，避免日志文件变成 root-owned。
 
 日志中的每个补丁点会记录 `passed`、`applied`、`already_patched`、`missing` 或 `failed`，并带上目标 bundle 文件名和 Claude 版本。`i18n.known_missing_strings` 会检查已经记录过的易漏英文文案 key，发现缺失、仍等于 en-US 原文或不含中文字符时会进入 `required_failures`。`i18n.developer_menu_labels` 会检查开发者模式下主进程菜单的额外调试项是否仍是英文。`i18n.custom3p_setup_labels` 会检查“配置第三方推理”窗口的 asar 与前端 bundle 文案是否仍有已记录的英文残留。上下文窗口相关日志必须同时覆盖 `code.context_usage_window_override`、`code.live_context_usage_window_override`、`runtime.gateway_auth_check`、`runtime.gateway_messages_auth_check`、`runtime.claude_code_gateway_env`、`runtime.provider_default_ignores_opus_alias`、`runtime.provider_context_window`、`runtime.claude_code_context_window`、`runtime.context_window_root_configured` 和 `runtime.context_window_match`，用来区分“只改了显示”“只写了 GrowthBook 缓存”“网关认证失败”“消息接口认证失败”“Code CLI 鉴权环境没有同步”“把 Opus 显示别名误当 provider 默认模型”和“真实运行时窗口已经同步”。日志还会记录 provider 默认模型发现来源和当前未归档 Claude Code 会话里的 token-limit 错误，但不记录 API Key、token 或完整对话内容。
+
+`asar.code_gateway_env_injection` 是 Code 401 的启动层必查项。它会在 `app.asar` 的 Claude Code 环境构建函数中追加运行时读取 `~/.claude/settings.json > env` 的逻辑，只传递 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY`、`ANTHROPIC_CUSTOM_HEADERS` 和少量 Code 环境开关，不把任何 API Key 写进 App bundle。这个补丁解决的是“日志探测成功，但 UI 新会话仍 401”的分层问题：探测脚本能直接请求成功，只能证明保存的 Key 有效；Code 子进程是否真的继承这套环境，需要这个启动层补丁保证。
 
 `runtime.gateway_auth_check` 只记录 `/v1/models` 探测的 HTTP 状态、网关 endpoint 和错误原因，不记录 API Key。其他电脑出现 `401 The API Key appears to be invalid or may have expired` 时，这个事件应为 `missing`，message 里会包含 `status=401`，用于区分“补丁没命中”和“该电脑凭据不可用”。
 
@@ -300,7 +309,7 @@ Logs/patch-report-YYYYMMDD-HHMMSS.json
 
 `runtime.gateway_messages_auth_check` 会额外用极小 `/v1/messages` 请求验证真实推理接口。它会根据第三方推理配置里的认证方案发送 `Authorization: Bearer` 或 `x-api-key`，并在日志里记录 `auth_scheme` 和 `credential_mode`。`runtime.gateway_auth_check` 只代表 `/v1/models` 可读；如果模型探测通过但消息接口返回 401/403，说明当前 Key 对推理接口无效、认证方案选错或已过期，需要重新保存第三方推理 API Key 或检查上游权限。
 
-如果“同一个插件在 A 文件夹可用、B 文件夹 401”，不能只看全局 `~/.claude/settings.json`。`runtime.active_project_env_overrides` 会扫描未归档 Code 会话的项目 `cwd`，检查项目内 `.claude/settings*.json` 和 `.env*` 是否覆盖了 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY` 或认证类 `ANTHROPIC_CUSTOM_HEADERS`。`runtime.project_env_overrides` 则来自把项目文件夹拖到 `diagnose.command`，或手动传入 `--project` 的显式项目路径。两者都只记录文件路径和 mismatch 类型，不记录密钥，用来快速定位项目级旧 Key 或旧网关覆盖。
+如果“同一个插件在 A 文件夹可用、B 文件夹 401”，不能只看全局 `~/.claude/settings.json`。`runtime.active_project_env_overrides` 会扫描未归档 Code 会话的项目 `cwd`，检查项目内 `.claude/settings*.json` 和 `.env*` 是否覆盖了 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY` 或认证类 `ANTHROPIC_CUSTOM_HEADERS`。它只记录文件路径和 mismatch 类型，不记录密钥，用来快速定位项目级旧 Key 或旧网关覆盖。
 
 运行时 token-limit 错误检查的事件名是：
 
@@ -318,7 +327,7 @@ runtime.active_sessions_token_limit_errors
 
 这个流程不修改 API Key、网关配置或项目文件，只瘦身 Claude Code 的历史记录。它解决的是恢复旧会话时已经被上游明确拒绝的 token-limit 问题；如果网关本身不可用、Key 错误或网络不通，仍需要按网关配置排查。
 
-如果其他电脑出现 Cowork 只有模型没有强度、Code 只显示 `· 高`、`Legacy Model`、Kimi 不能切换等问题，优先运行：
+如果其他电脑出现 Cowork 只有模型没有强度、Code 只显示 `· 高`、`Legacy Model`、Kimi 不能切换等问题，用户入口优先运行 `install.command` 重新安装补丁。维护者需要只读检查时，可以手动运行：
 
 ```bash
 /usr/bin/python3 patch_claude_zh_cn.py --diagnose --app /Applications/Claude.app
