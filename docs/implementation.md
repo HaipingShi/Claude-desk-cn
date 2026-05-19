@@ -277,8 +277,11 @@ Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化
 - `repair_code_runtime.command`：Code 401 或 Cowork 可用但 Code 不可用时唯一需要运行的入口。
 - `prepare_official_update.command`：官方 DMG 覆盖安装前解除权限，不处理网关或汉化。
 
-`repair_code_runtime.command` 等价于运行 `patch_claude_zh_cn.py --repair-code-runtime --app /Applications/Claude.app --user-home "$HOME"`，不替换 app、不需要 sudo，只修复用户态 Claude Code 运行时配置：
+`repair_code_runtime.command` 等价于运行 `patch_claude_zh_cn.py --repair-code-runtime --app /Applications/Claude.app --user-home "$HOME"`，不替换 app、不需要 sudo。它的顺序必须是“先取证，再修复”，避免先退出 Claude 后把真正报 401 的 Code 子进程现场清掉：
 
+- 修复前读取当前活动 Claude Code 子进程，记录 `runtime.pre_repair_active_code_processes`。
+- 修复前读取活动子进程环境，记录 `runtime.pre_repair_active_code_env`。日志只记录 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY` 是否存在、是否匹配当前第三方推理配置，不记录密钥值。
+- 修复前扫描最近 transcript，记录 `runtime.recent_code_api_errors`，分类为 `auth_401`、`forbidden_403`、`token_limit` 或 `policy_block`。
 - 退出 Claude 并终止遗留 Claude Code 子进程。
 - 从当前第三方推理配置读取网关地址和静态 API Key。
 - 写入 `~/.claude/settings.json > env` 的 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY`。写入前会把原 `settings.json` 备份到 `~/.claude/backups/`，写入时只合并必要 env 字段，不删除 CLI/VS Code 插件使用的 hooks、statusLine、enabledPlugins、已有 env 等配置。
@@ -286,7 +289,7 @@ Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化
 - 迁移旧会话里的 Opus 显示别名到真实 provider 模型。
 - 扫描最近未归档 Code 会话的项目目录，检查 `.claude/settings*.json` 和 `.env*` 是否覆盖旧网关或旧 Key。
 - 检查 `asar.code_gateway_env_injection`。如果直接 `/v1/messages` 探测通过、`~/.claude/settings.json` 也同步正确，但 Code 新会话仍 401，通常说明 App 启动层仍在用官方 OAuth/空 API Key 环境拉起 Code 子进程。这个场景不能只靠 repair 修用户配置，必须重新运行 `install.command` 写入 app.asar 启动层补丁。
-- 修复后立即执行 `/v1/models` 与极小 `/v1/messages` 探测，并写入 `runtime.repair_conclusion`，结论只允许是 `桌面版和 CLI 都正常`、`桌面版正常，CLI 配置可能受影响`、`CLI 正常，桌面版启动层未注入`、`共享 API Key 无效或过期`、`项目级配置覆盖导致异常`、`网关不可达`、`需要手动处理凭据` 或 `脚本异常`。
+- 修复后立即执行 `/v1/models` 与极小 `/v1/messages` 探测，并写入 `runtime.repair_conclusion`，结论只允许是 `桌面版和 CLI 都正常`、`桌面版活动子进程未继承网关环境`、`活动子进程环境正常但仍 401`、`桌面版正常，CLI 配置可能受影响`、`CLI 正常，桌面版启动层未注入`、`共享 API Key 无效或过期`、`项目级配置覆盖导致异常`、`网关不可达`、`需要手动处理凭据` 或 `脚本异常`。其中 `桌面版和 CLI 都正常` 必须标记为 `passed`，不能再误记为 `missing`。
 
 日志路径：
 
@@ -299,9 +302,9 @@ Logs/command-YYYYMMDD-HHMMSS.log
 
 `Logs/` 固定在项目根目录，也就是 `install.command` 同级。这样把项目复制到其他电脑后，异常机器生成的日志也在同一个文件夹里，方便直接打包发回。三个 `.command` 外层都会先写 `command-latest.log`，即使 Python 参数错误、权限错误、app 路径不存在或用户中途关闭窗口，也能留下 shell transcript。Python 内层还有顶层异常兜底，异常时也会写 `Logs/latest.json`，事件名为 `script.exception`。脚本通过 sudo 运行时，会把 `Logs/` 及生成的 JSON 文件 owner 改回当前用户，避免日志文件变成 root-owned。
 
-日志中的每个补丁点会记录 `passed`、`applied`、`already_patched`、`missing` 或 `failed`，并带上目标 bundle 文件名和 Claude 版本。`i18n.known_missing_strings` 会检查已经记录过的易漏英文文案 key，发现缺失、仍等于 en-US 原文或不含中文字符时会进入 `required_failures`。`i18n.developer_menu_labels` 会检查开发者模式下主进程菜单的额外调试项是否仍是英文。`i18n.custom3p_setup_labels` 会检查“配置第三方推理”窗口的 asar 与前端 bundle 文案是否仍有已记录的英文残留。上下文窗口相关日志必须同时覆盖 `code.context_usage_window_override`、`code.live_context_usage_window_override`、`runtime.gateway_auth_check`、`runtime.gateway_messages_auth_check`、`runtime.claude_code_gateway_env`、`runtime.desktop_code_env`、`runtime.terminal_cli_env`、`runtime.vscode_claude_extension`、`runtime.shared_settings_merge_safe`、`runtime.shared_settings_backup_path`、`runtime.provider_default_ignores_opus_alias`、`runtime.provider_context_window`、`runtime.claude_code_context_window`、`runtime.context_window_root_configured` 和 `runtime.context_window_match`，用来区分“只改了显示”“只写了 GrowthBook 缓存”“网关认证失败”“消息接口认证失败”“Code CLI 鉴权环境没有同步”“桌面版启动层未注入”“终端 CLI 共享配置可能受影响”“VS Code 插件可能使用同一共享配置”“把 Opus 显示别名误当 provider 默认模型”和“真实运行时窗口已经同步”。日志还会记录 provider 默认模型发现来源和当前未归档 Claude Code 会话里的 token-limit 错误，但不记录 API Key、token 或完整对话内容。
+日志中的每个补丁点会记录 `passed`、`applied`、`already_patched`、`missing` 或 `failed`，并带上目标 bundle 文件名和 Claude 版本。`i18n.known_missing_strings` 会检查已经记录过的易漏英文文案 key，发现缺失、仍等于 en-US 原文或不含中文字符时会进入 `required_failures`。`i18n.developer_menu_labels` 会检查开发者模式下主进程菜单的额外调试项是否仍是英文。`i18n.custom3p_setup_labels` 会检查“配置第三方推理”窗口的 asar 与前端 bundle 文案是否仍有已记录的英文残留。上下文窗口相关日志必须同时覆盖 `code.context_usage_window_override`、`code.live_context_usage_window_override`、`runtime.gateway_auth_check`、`runtime.gateway_messages_auth_check`、`runtime.claude_code_gateway_env`、`runtime.pre_repair_active_code_processes`、`runtime.pre_repair_active_code_env`、`runtime.recent_code_api_errors`、`runtime.desktop_code_env`、`runtime.terminal_cli_env`、`runtime.vscode_claude_extension`、`runtime.shared_settings_merge_safe`、`runtime.shared_settings_backup_path`、`runtime.provider_default_ignores_opus_alias`、`runtime.provider_context_window`、`runtime.claude_code_context_window`、`runtime.context_window_root_configured` 和 `runtime.context_window_match`，用来区分“只改了显示”“只写了 GrowthBook 缓存”“网关认证失败”“消息接口认证失败”“Code CLI 鉴权环境没有同步”“桌面版活动子进程没继承 env”“桌面版启动层未注入”“终端 CLI 共享配置可能受影响”“VS Code 插件可能使用同一共享配置”“把 Opus 显示别名误当 provider 默认模型”和“真实运行时窗口已经同步”。日志还会记录 provider 默认模型发现来源和当前未归档 Claude Code 会话里的 token-limit 错误，但不记录 API Key、token 或完整对话内容。
 
-`asar.code_gateway_env_injection` 是 Code 401 的启动层必查项。它会在 `app.asar` 的 Claude Code 环境构建函数中追加运行时读取 `~/.claude/settings.json > env` 的逻辑，只传递 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY`、`ANTHROPIC_CUSTOM_HEADERS` 和少量 Code 环境开关，不把任何 API Key 写进 App bundle。这个补丁解决的是“日志探测成功，但 UI 新会话仍 401”的分层问题：探测脚本能直接请求成功，只能证明保存的 Key 有效；Code 子进程是否真的继承这套环境，需要这个启动层补丁保证。
+`asar.code_gateway_env_injection` 是 Code 401 的启动层必查项。它会在 `app.asar` 的 Claude Code 环境构建函数中追加运行时读取 `~/.claude/settings.json > env` 的逻辑，只传递 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_API_KEY`、`ANTHROPIC_CUSTOM_HEADERS` 和少量 Code 环境开关，不把任何 API Key 写进 App bundle。这个补丁解决的是“日志探测成功，但 UI 新会话仍 401”的分层问题：探测脚本能直接请求成功，只能证明保存的 Key 有效；Code 子进程是否真的继承这套环境，需要这个启动层补丁保证。诊断现在不只检查字符串存在，还记录 `helper_count`、`spread_count` 和 `settings_path_count`；如果静态 marker 存在但 `runtime.pre_repair_active_code_env` 仍显示活动子进程没拿到 Key，就优先判定为实际启动路径未继承 env，而不是继续误判 Key 失效。
 
 `runtime.gateway_auth_check` 只记录 `/v1/models` 探测的 HTTP 状态、网关 endpoint 和错误原因，不记录 API Key。其他电脑出现 `401 The API Key appears to be invalid or may have expired` 时，这个事件应为 `missing`，message 里会包含 `status=401`，用于区分“补丁没命中”和“该电脑凭据不可用”。
 

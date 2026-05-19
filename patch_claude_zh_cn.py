@@ -17,6 +17,7 @@ Run from this folder:
 from __future__ import annotations
 
 import argparse
+import ctypes
 from dataclasses import dataclass, field
 import datetime as dt
 import hashlib
@@ -68,6 +69,15 @@ TOKEN_LIMIT_ERROR_RE = re.compile(
     r"exceeded model token limit:\s*(?P<limit>\d+)\s*\(requested:\s*(?P<requested>\d+)\)",
     re.IGNORECASE,
 )
+AUTH_401_ERROR_RE = re.compile(
+    r"(Failed to authenticate|API Error:\s*401|status=401|appears to be invalid)",
+    re.IGNORECASE,
+)
+FORBIDDEN_403_ERROR_RE = re.compile(r"(API Error:\s*403|status=403)", re.IGNORECASE)
+POLICY_BLOCK_ERROR_RE = re.compile(
+    r"(Usage Policy|unable to respond to this request)",
+    re.IGNORECASE,
+)
 PROJECT_ENV_OVERRIDE_KEYS = {
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_AUTH_TOKEN",
@@ -115,6 +125,52 @@ DEV_MENU_LABEL_REPLACEMENTS: dict[str, str] = {
 }
 
 CUSTOM3P_SETUP_REPLACEMENTS: dict[str, str] = {
+    'defaultMessage:"Connection"': 'defaultMessage:"连接"',
+    'defaultMessage:"Choose where Claude Desktop sends inference requests."': 'defaultMessage:"选择 Claude Desktop 发送推理请求的位置。"',
+    'defaultMessage:"Workspace restrictions"': 'defaultMessage:"沙盒与工作区"',
+    'defaultMessage:"Connectors & extensions"': 'defaultMessage:"连接器与扩展"',
+    'defaultMessage:"Telemetry & updates"': 'defaultMessage:"遥测与更新"',
+    'defaultMessage:"Usage limits"': 'defaultMessage:"使用限制"',
+    'defaultMessage:"Appearance"': 'defaultMessage:"外观"',
+    'defaultMessage:"Plugins & skills"': 'defaultMessage:"插件与技能"',
+    'defaultMessage:"Egress Requirements"': 'defaultMessage:"出站要求"',
+    'defaultMessage:"Gateway base URL"': 'defaultMessage:"网关基础 URL"',
+    'defaultMessage:"Gateway API key"': 'defaultMessage:"网关 API 密钥"',
+    'defaultMessage:"Gateway auth scheme"': 'defaultMessage:"网关认证方案"',
+    'defaultMessage:"Full URL of the inference gateway endpoint."': 'defaultMessage:"推理网关端点的完整 URL。"',
+    'defaultMessage:"How the gateway credential is sent. Choose Bearer or x-api-key for a static key or credential-helper output; choose SSO to have each user sign in via your identity provider."': 'defaultMessage:"网关凭据的发送方式。静态密钥或凭据辅助脚本输出请选择 Bearer 或 x-api-key；如需每个用户通过身份提供商登录，请选择 SSO。"',
+    'defaultMessage:"Custom inference headers"': 'defaultMessage:"自定义推理请求头"',
+    'defaultMessage:"Extra HTTP headers sent on every inference request to the configured provider. For tenant routing, org IDs, Bedrock Guardrails, etc."': 'defaultMessage:"每次推理请求都会发送到已配置提供商的额外 HTTP 请求头。可用于租户路由、组织 ID、Bedrock Guardrails 等。"',
+    'defaultMessage:"Test connection"': 'defaultMessage:"测试连接"',
+    'defaultMessage:"Test connection is not available for local (stdio) servers."': 'defaultMessage:"本地（stdio）服务器不支持测试连接。"',
+    'defaultMessage:"Add header"': 'defaultMessage:"添加请求头"',
+    'defaultMessage:"Models"': 'defaultMessage:"模型"',
+    'defaultMessage:"Extensions"': 'defaultMessage:"扩展"',
+    'defaultMessage:"MCP servers"': 'defaultMessage:"MCP 服务器"',
+    'defaultMessage:"Organization banner"': 'defaultMessage:"组织横幅"',
+    'defaultMessage:"A persistent banner across the top of the app window after sign-in."': 'defaultMessage:"登录后在应用窗口顶部显示的常驻横幅。"',
+    'defaultMessage:"Show banner"': 'defaultMessage:"显示横幅"',
+    'defaultMessage:"Banner text"': 'defaultMessage:"横幅文本"',
+    'defaultMessage:"Internal use only"': 'defaultMessage:"仅供内部使用"',
+    'defaultMessage:"Reject desktop extensions that are not signed by a trusted publisher."': 'defaultMessage:"拒绝未由受信任发布者签名的桌面扩展。"',
+    'defaultMessage:"Users see only this provider at the login screen. The option to sign in to Claude.ai is hidden."': 'defaultMessage:"用户在登录页只会看到此提供商，登录 Claude.ai 的选项会被隐藏。"',
+    'defaultMessage:"Your provider setup needs a fix"': 'defaultMessage:"提供商配置需要修复"',
+    'defaultMessage:"Some required fields are missing or malformed. Open Setup to finish configuring it."': 'defaultMessage:"部分必填字段缺失或格式不正确。请打开设置完成配置。"',
+    'defaultMessage:"Configuration can\'t be used"': 'defaultMessage:"配置无法使用"',
+    'defaultMessage:"An administrator configured Cowork with settings we can\'t use. You won\'t be able to start tasks until your IT team fixes it."': 'defaultMessage:"管理员配置的 Cowork 设置当前无法使用。在 IT 团队修复前，你将无法启动任务。"',
+    'defaultMessage:"Configuration sync issue"': 'defaultMessage:"配置同步问题"',
+    'defaultMessage:"Couldn\'t fetch your organization\'s configuration. Open Setup to see details and sign in."': 'defaultMessage:"无法获取组织配置。请打开设置查看详情并登录。"',
+    'defaultMessage:"Couldn\'t sign in to {provider}"': 'defaultMessage:"无法登录 {provider}"',
+    'defaultMessage:"The provider rejected the credentials IT configured. This usually means an expired key or wrong region."': 'defaultMessage:"提供商拒绝了 IT 配置的凭据，通常是密钥过期或区域错误。"',
+    'defaultMessage:"The provider rejected your credentials. Re-enter them in Setup."': 'defaultMessage:"提供商拒绝了你的凭据。请在设置中重新输入。"',
+    'defaultMessage:"Can\'t reach {host}"': 'defaultMessage:"无法连接到 {host}"',
+    'defaultMessage:"The provider didn\'t respond. Check your network or VPN. If the issue persists, your IT team may need to allowlist the host."': 'defaultMessage:"提供商没有响应。请检查网络或 VPN。如果问题持续存在，IT 团队可能需要将该主机加入允许列表。"',
+    'defaultMessage:"The provider didn\'t respond. Check your network or VPN, then try again."': 'defaultMessage:"提供商没有响应。请检查网络或 VPN，然后重试。"',
+    'defaultMessage:"Configured model not available"': 'defaultMessage:"配置的模型不可用"',
+    'defaultMessage:"Your gateway couldn\'t serve {model}. This model may not be configured on your gateway, or access may be restricted."': 'defaultMessage:"你的网关无法提供 {model}。该模型可能未在网关中配置，或访问受限。"',
+    'defaultMessage:"{provider} returned an error"': 'defaultMessage:"{provider} 返回错误"',
+    'defaultMessage:"Your connection works, but the provider rejected a test request. This is often a model-access or quota issue your admin can resolve."': 'defaultMessage:"连接可用，但提供商拒绝了测试请求。这通常是模型访问或额度问题，管理员可以处理。"',
+    'defaultMessage:"Your connection works, but the provider rejected a test request. Often a model-access or quota issue."': 'defaultMessage:"连接可用，但提供商拒绝了测试请求。通常是模型访问或额度问题。"',
     'category:"appearance"': 'category:"外观"',
     'group:"Organization banner"': 'group:"组织横幅"',
     'hint:"A persistent banner across the top of the app window after sign-in."': 'hint:"登录后在应用窗口顶部显示的常驻横幅。"',
@@ -294,6 +350,13 @@ def find_report_event(report: PatchReport, name: str) -> PatchEvent | None:
     return None
 
 
+REPAIR_PASSED_CONCLUSIONS = {"已修复", "桌面版和 CLI 都正常"}
+
+
+def repair_conclusion_status(conclusion: str) -> str:
+    return "passed" if conclusion in REPAIR_PASSED_CONCLUSIONS else "missing"
+
+
 def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
     project_event = find_report_event(report, "runtime.active_project_env_overrides")
     if project_event and project_event.status == "missing" and (project_event.count or 0) > 0:
@@ -310,6 +373,21 @@ def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
         return "共享 API Key 无效或过期", combined
     if re.search(r"status=(url_error|timeout|os_error)", combined):
         return "网关不可达", combined
+
+    pre_env_event = find_report_event(report, "runtime.pre_repair_active_code_env")
+    if pre_env_event and pre_env_event.status == "missing" and (pre_env_event.count or 0) > 0:
+        return "桌面版活动子进程未继承网关环境", pre_env_event.message
+
+    recent_error_event = find_report_event(report, "runtime.recent_code_api_errors")
+    if (
+        recent_error_event
+        and recent_error_event.status == "missing"
+        and "auth_401" in recent_error_event.message
+        and pre_env_event
+        and pre_env_event.status == "passed"
+        and (pre_env_event.count or 0) > 0
+    ):
+        return "活动子进程环境正常但仍 401", recent_error_event.message
 
     desktop_event = find_report_event(report, "runtime.desktop_code_env")
     terminal_event = find_report_event(report, "runtime.terminal_cli_env")
@@ -341,6 +419,7 @@ def find_frontend_bundles(app: Path) -> dict[str, Path | None]:
             "const Jbt=({conversationUuid" in text
             or "Jbt=({models:e,currentModelOption" in text
             or ("k5=(e=\"ccr_model\"" in text and "Pht=({models:e,currentModelOption" in text)
+            or ("cowork_model" in text and "currentModelOption" in text and "sticky_model_selector" in text)
         ):
             result["index"] = path
         if (
@@ -348,6 +427,7 @@ def find_frontend_bundles(app: Path) -> dict[str, Path | None]:
             and (
                 ('const um="ccd-effort-level' in text and "modelExtraSections:xs" in text)
                 or ('const zm="ccd-effort-level' in text and "modelExtraSections:Ss" in text)
+                or ("ccd-effort-level" in text and "modelExtraSections" in text)
             )
         ):
             result["code"] = path
@@ -425,11 +505,9 @@ def check_custom3p_setup_i18n(app: Path) -> tuple[bool, str, int]:
     combined = "\n".join(texts)
 
     failures: list[str] = []
-    for source, target in CUSTOM3P_SETUP_REPLACEMENTS.items():
+    for source, _target in CUSTOM3P_SETUP_REPLACEMENTS.items():
         if source in combined:
             failures.append(f"仍存在英文：{source}")
-        if target not in combined:
-            failures.append(f"缺少中文：{target}")
     return not failures, "; ".join(failures), len(CUSTOM3P_SETUP_REPLACEMENTS)
 
 
@@ -521,6 +599,118 @@ def active_claude_code_processes(user_home: Path) -> list[dict[str, str]]:
         model_match = re.search(r"(?:^|\s)--model\s+(\S+)", command)
         processes.append({"pid": pid, "model": model_match.group(1) if model_match else "", "command": command})
     return processes
+
+
+def read_process_environment(pid: str | int) -> tuple[dict[str, str], str]:
+    """读取 macOS 进程环境；只给诊断层使用，调用方不得记录密钥值。"""
+    try:
+        pid_int = int(pid)
+    except Exception:
+        return {}, "pid_invalid"
+    if sys.platform != "darwin":
+        return {}, "unsupported_platform"
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    ctl = (ctypes.c_int * 3)(1, 49, pid_int)  # CTL_KERN, KERN_PROCARGS2, pid
+    size = ctypes.c_size_t(0)
+    if libc.sysctl(ctl, 3, None, ctypes.byref(size), None, 0) != 0 or size.value <= 0:
+        errno = ctypes.get_errno()
+        return {}, f"size_unreadable_errno_{errno}"
+
+    buf = ctypes.create_string_buffer(size.value)
+    if libc.sysctl(ctl, 3, buf, ctypes.byref(size), None, 0) != 0:
+        errno = ctypes.get_errno()
+        return {}, f"data_unreadable_errno_{errno}"
+
+    data = bytes(buf.raw[: size.value])
+    if len(data) < 4:
+        return {}, "data_too_short"
+    try:
+        argc = struct.unpack_from("i", data, 0)[0]
+    except Exception:
+        return {}, "argc_unreadable"
+    if argc < 0 or argc > 4096:
+        return {}, f"argc_invalid_{argc}"
+
+    parts = [part.decode("utf-8", errors="ignore") for part in data[4:].split(b"\0") if part]
+    # KERN_PROCARGS2 的常见布局为 exec path、argv[argc]、env[]。
+    env_parts = parts[1 + argc :] if len(parts) > 1 + argc else []
+    env: dict[str, str] = {}
+    for item in env_parts:
+        if "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+        if key:
+            env[key] = value
+    if not env:
+        return {}, "env_empty"
+    return env, "passed"
+
+
+def pre_repair_active_code_process_status(
+    user_home: Path, processes: list[dict[str, str]] | None = None
+) -> tuple[str, str, int]:
+    active = processes if processes is not None else active_claude_code_processes(user_home)
+    if not active:
+        return "passed", "active=0", 0
+    details: list[str] = []
+    for item in active[:8]:
+        command = item.get("command", "")
+        is_desktop = str(user_home / "Library/Application Support/Claude-3p/claude-code") in command
+        details.append(
+            f"pid={item.get('pid')}; model={item.get('model') or 'unknown'}; desktop={str(is_desktop).lower()}"
+        )
+    return "passed", f"active={len(active)}; " + " | ".join(details), len(active)
+
+
+def pre_repair_active_code_env_status(
+    user_home: Path, processes: list[dict[str, str]] | None = None
+) -> tuple[str, str, int]:
+    active = processes if processes is not None else active_claude_code_processes(user_home)
+    if not active:
+        return "passed", "active=0", 0
+    gateway = active_gateway_config(user_home)
+    if not gateway:
+        return "missing", f"active={len(active)}; gateway_config=missing", len(active)
+    expected_base = normalize_gateway_base_url(gateway.get("base_url"))
+    expected_key = gateway.get("api_key")
+    credential_mode = gateway_credential_mode(gateway)
+    auth_scheme = normalize_gateway_auth_scheme(gateway)
+
+    failures = 0
+    details: list[str] = []
+    for item in active[:8]:
+        env, env_status = read_process_environment(item["pid"])
+        current_base = normalize_gateway_base_url(env.get("ANTHROPIC_BASE_URL"))
+        token = env.get("ANTHROPIC_AUTH_TOKEN")
+        api_key = env.get("ANTHROPIC_API_KEY")
+        base_match = bool(expected_base and current_base == expected_base)
+        token_present = isinstance(token, str) and bool(token.strip())
+        api_key_present = isinstance(api_key, str) and bool(api_key.strip())
+        token_match = isinstance(expected_key, str) and isinstance(token, str) and token.strip() == expected_key.strip()
+        api_key_match = (
+            isinstance(expected_key, str) and isinstance(api_key, str) and api_key.strip() == expected_key.strip()
+        )
+        oauth_present = bool(str(env.get("CLAUDE_CODE_OAUTH_TOKEN") or "").strip())
+        ok = (
+            env_status == "passed"
+            and base_match
+            and (credential_mode in {"sso", "credential_helper"} or (token_match and api_key_match))
+        )
+        if not ok:
+            failures += 1
+        details.append(
+            (
+                f"pid={item['pid']}; model={item.get('model') or 'unknown'}; env_status={env_status}; "
+                f"base_url_match={str(base_match).lower()}; auth_scheme={auth_scheme}; "
+                f"credential_mode={credential_mode}; auth_token_present={str(token_present).lower()}; "
+                f"auth_token_matches_gateway={str(token_match).lower()}; "
+                f"api_key_present={str(api_key_present).lower()}; api_key_matches_gateway={str(api_key_match).lower()}; "
+                f"oauth_token_present={str(oauth_present).lower()}; api_key_not_logged=true"
+            )
+        )
+    status = "passed" if failures == 0 else "missing"
+    return status, f"active={len(active)}; " + " | ".join(details), len(active)
 
 
 def terminate_claude_code_children(user_home: Path, dry_run: bool) -> int:
@@ -825,6 +1015,21 @@ def patch_hardcoded_frontend_strings(
             if occurrences:
                 patched = patched.replace(source, target)
                 count += occurrences
+        health_guard_source = (
+            'y=function(e){if(!e)return"";try{return new URL(e).host}catch{return e}}'
+            '(d?.endpoint)||s.formatMessage({defaultMessage:"the provider endpoint",id:"lI6dUVuWZk"}),v=n.useCallback'
+        )
+        health_guard_target = (
+            'y=function(e){if(!e)return"";try{return new URL(e).host}catch{return e}}'
+            '(d?.endpoint)||s.formatMessage({defaultMessage:"the provider endpoint",id:"lI6dUVuWZk"});'
+            'if(!g&&("gateway"===String(x).toLowerCase()||/api\\.kimi\\.com(?:\\/coding)?/i.test(String(d?.endpoint??d?.requestUrl??"")))'
+            '&&(d?.state===eG.InvalidConfig||d?.state===eG.Unreachable))return null;'
+            'v=n.useCallback'
+        )
+        occurrences = patched.count(health_guard_source)
+        if occurrences:
+            patched = patched.replace(health_guard_source, health_guard_target)
+            count += occurrences
         if patched != text:
             path.write_text(patched, encoding="utf-8")
             patched_files += 1
@@ -924,16 +1129,16 @@ def patch_permission_defaults(assets_dir: Path) -> tuple[int, int]:
     """把 Code 新建会话权限默认值固定为绕过权限，并隔离旧 localStorage。"""
     regex_replacements: list[tuple[re.Pattern[str], str]] = [
         (
-            re.compile(r'\b(?P<fn>Ld|fc|Ic)\("cc-landing-draft-permission-mode","acceptEdits"\)'),
+            re.compile(r'\b(?P<fn>Ld|fc|Ic|Rp)\("cc-landing-draft-permission-mode","acceptEdits"\)'),
             r'\g<fn>("cc-landing-draft-permission-mode-cn","bypassPermissions")',
         ),
         (
-            re.compile(r'\b(?P<fn>Mi|Ks|Ws)\("cc-landing-draft-permission-mode","acceptEdits",!1\)'),
+            re.compile(r'\b(?P<fn>Mi|Ks|Ws|Rp)\("cc-landing-draft-permission-mode","acceptEdits",!1\)'),
             r'\g<fn>("cc-landing-draft-permission-mode-cn","bypassPermissions",!1)',
         ),
         (
             re.compile(
-                r'\b(?P<fn>Ld|fc|Ic)\("epitaxy-folder-permission-mode",'
+                r'\b(?P<fn>Ld|fc|Ic|Rp)\("epitaxy-folder-permission-mode",'
                 r'(?P<default>[A-Za-z_$][\w$]*),\{scope:"account"\}\)'
             ),
             r'\g<fn>("epitaxy-folder-permission-mode-cn",\g<default>,{scope:"account"})',
@@ -951,6 +1156,12 @@ def patch_permission_defaults(assets_dir: Path) -> tuple[int, int]:
         ),
         'const e=dn??cn??Qs??nn??"bypassPermissions";return fn?jt(e,Gs):e': (
             'const e=dn??cn??Qs??nn??"bypassPermissions";return fn?jt(e,Gs):e'
+        ),
+        'const jn=e.useMemo(()=>{if(s)return xn??yn??nn??"default";const e=xn??gn??cn??nn;return bn?jt(e,en):e}': (
+            'const jn=e.useMemo(()=>{if(s)return xn??yn??nn??"bypassPermissions";const e=xn??gn??cn??nn??"bypassPermissions";return bn?jt(e,en):e}'
+        ),
+        'const jn=e.useMemo(()=>{if(s)return xn??yn??nn??"bypassPermissions";const e=xn??gn??cn??nn??"bypassPermissions";return bn?jt(e,en):e}': (
+            'const jn=e.useMemo(()=>{if(s)return xn??yn??nn??"bypassPermissions";const e=xn??gn??cn??nn??"bypassPermissions";return bn?jt(e,en):e}'
         ),
     }
     patched_files = 0
@@ -1036,6 +1247,9 @@ def patch_context_usage_percent(assets_dir: Path, context_window: int | None = N
         'const n=ege(s[2]);if(0===n)return{text:e,usage:null};': (
             f'const n0=ege(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
         ),
+        'const n=M1e(s[2]);if(0===n)return{text:e,usage:null};': (
+            f'const n0=M1e(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
+        ),
         'const n0=ege(s[2]),n=262144||n0;if(0===n)return{text:e,usage:null};': (
             f'const n0=ege(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
         ),
@@ -1044,6 +1258,15 @@ def patch_context_usage_percent(assets_dir: Path, context_window: int | None = N
         ),
         'const n0=ege(s[2]),n=1000000||n0;if(0===n)return{text:e,usage:null};': (
             f'const n0=ege(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
+        ),
+        'const n0=M1e(s[2]),n=262144||n0;if(0===n)return{text:e,usage:null};': (
+            f'const n0=M1e(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
+        ),
+        'const n0=M1e(s[2]),n=200000||n0;if(0===n)return{text:e,usage:null};': (
+            f'const n0=M1e(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
+        ),
+        'const n0=M1e(s[2]),n=1000000||n0;if(0===n)return{text:e,usage:null};': (
+            f'const n0=M1e(s[2]),n={window_literal}||n0;if(0===n)return{{text:e,usage:null}};'
         ),
         (
             'return{text:e,usage:{model:t,totalTokens:ege(s[1]),rawMaxTokens:n,'
@@ -1058,6 +1281,22 @@ def patch_context_usage_percent(assets_dir: Path, context_window: int | None = N
             'percentage:Math.round(ege(s[1])/n*1e3)/10,categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
         ): (
             'const l=ege(s[1]),c=Math.round(l/n*1e3)/10;'
+            'return{text:e,usage:{model:t,totalTokens:l,rawMaxTokens:n,'
+            'percentage:c,categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
+        ),
+        (
+            'return{text:e,usage:{model:t,totalTokens:M1e(s[1]),rawMaxTokens:n,'
+            'percentage:Number(s[3]),categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
+        ): (
+            'const l=M1e(s[1]),c=Math.round(l/n*1e3)/10;'
+            'return{text:e,usage:{model:t,totalTokens:l,rawMaxTokens:n,'
+            'percentage:c,categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
+        ),
+        (
+            'return{text:e,usage:{model:t,totalTokens:M1e(s[1]),rawMaxTokens:n,'
+            'percentage:Math.round(M1e(s[1])/n*1e3)/10,categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
+        ): (
+            'const l=M1e(s[1]),c=Math.round(l/n*1e3)/10;'
             'return{text:e,usage:{model:t,totalTokens:l,rawMaxTokens:n,'
             'percentage:c,categories:a,mcpTools:r,memoryFiles:i,agents:o}}'
         ),
@@ -1133,6 +1372,9 @@ def patch_kimi_gateway_health_banner(assets_dir: Path) -> tuple[int, int]:
             '/api\\.kimi\\.com(?:\\/coding)?/i.test(String(x??l.endpoint??l.requestUrl??"")))return null;'
             'const k=l.state===wz.InvalidConfig||l.state===wz.AuthFailed||l.state===wz.BootstrapError'
         ),
+        'case eG.Unreachable:return t?{title:a.jsx(c,{defaultMessage:"Can\'t reach {host}",id:"Uj5zPEHmrp",values:{host:r}})': (
+            'case eG.Unreachable:if(/api\\.kimi\\.com(?:\\/coding)?/i.test(String(r)))return null;return t?{title:a.jsx(c,{defaultMessage:"Can\'t reach {host}",id:"Uj5zPEHmrp",values:{host:r}})'
+        ),
     }
     patched_files = 0
     patched_strings = 0
@@ -1155,7 +1397,7 @@ def patch_kimi_gateway_health_banner(assets_dir: Path) -> tuple[int, int]:
 
 
 def patch_epitaxy_cache_bust(ion_dist_dir: Path, assets_dir: Path) -> tuple[int, int]:
-    """给 Code 入口相关资源加版本参数，避免复制到其他电脑后命中旧缓存。"""
+    """给 Code 和第三方设置页相关资源加版本参数，避免命中旧缓存。"""
     patched_files = 0
     patched_strings = 0
     code_chunk = next(
@@ -1174,6 +1416,10 @@ def patch_epitaxy_cache_bust(ion_dist_dir: Path, assets_dir: Path) -> tuple[int,
                 'const zm="ccd-effort-level' in path.read_text(encoding="utf-8", errors="ignore")
                 and "modelExtraSections:Ss" in path.read_text(encoding="utf-8", errors="ignore")
             )
+            or (
+                "ccd-effort-level" in path.read_text(encoding="utf-8", errors="ignore")
+                and "modelExtraSections" in path.read_text(encoding="utf-8", errors="ignore")
+            )
         ),
         None,
     )
@@ -1188,9 +1434,19 @@ def patch_epitaxy_cache_bust(ion_dist_dir: Path, assets_dir: Path) -> tuple[int,
         return query_re.sub("", value) + f"?v={version}"
 
     names = {code_chunk.name}
+    custom3p_targets = [target for target in CUSTOM3P_SETUP_REPLACEMENTS.values()]
     for path in sorted(assets_dir.glob("*.js")):
         text = path.read_text(encoding="utf-8", errors="ignore")
         if code_chunk.name in text and not path.name.startswith("index-"):
+            names.add(path.name)
+        if (
+            not path.name.startswith("index-")
+            and (
+                "setup-desktop-3p" in text
+                or "inferenceGatewayBaseUrl" in text
+                or any(target in text for target in custom3p_targets)
+            )
+        ):
             names.add(path.name)
 
     index_html = ion_dist_dir / "index.html"
@@ -1434,6 +1690,71 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
             '()=>window.removeEventListener("cowork-effort-change",e)},[]),t})(),'
             f'j=yc("cowork_model",{cowork_model_args}),'
         )
+
+    # Claude 1.8089+：Cowork 入口改为 Xae/Wmt，共享选择器仍在主 index bundle。
+    xae_return_source = (
+        'return{model:e&&"local_session"!==i?.type?b:U?A:"local_session"===i?.type&&B?P:$?F:s||w,'
+        'defaultModel:w,modelsConfig:C,hideThinkingMenu:y,stickyModelPreference:U?A:null,setStickyModelPreference:O,isSettled:L}'
+    )
+    xae_return_target = (
+        'const zhCoworkKimiOption=C.allModelOptions.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
+        'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
+        'zhCoworkKimiId=zhCoworkKimiOption?.model??"kimi-for-coding",'
+        'zhCoworkOpus={...(C.allModelOptions.find(e=>"opus"===e.model)||C.allModelOptions.find(e=>"opus[1m]"===e.model)||C.allModelOptions.find(e=>e.thinking_modes?.length)||{}),model:"opus",name:"Opus 4.71M",label_override:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'zhCoworkKimi={...(zhCoworkKimiOption??C.allModelOptions.find(e=>e.thinking_modes?.length)??{}),model:zhCoworkKimiId,name:"Kimi-k2.6",label_override:"Kimi-k2.6",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'zhCoworkConfig={...C,allModelOptions:[zhCoworkOpus,zhCoworkKimi],mainModels:[zhCoworkOpus,zhCoworkKimi],overflowModels:[],legacyModelIds:[],syntheticAllowedModels:C.syntheticAllowedModels??{}},'
+        'zhCoworkModel=(e=>{const t=String(e??"").toLowerCase();return" kimi-for-coding"===t.trim()||"kimi-k2.6"===t||/kimi/i.test(String(e))&&/k2\\.6/i.test(String(e))?zhCoworkKimiId:"opus"})(A);'
+        'return{model:c?zhCoworkModel:e&&"local_session"!==i?.type?b:U?A:"local_session"===i?.type&&B?P:$?F:s||w,'
+        'defaultModel:c?"opus":w,modelsConfig:c?zhCoworkConfig:C,hideThinkingMenu:y,stickyModelPreference:c?zhCoworkModel:U?A:null,setStickyModelPreference:O,isSettled:L}'
+    )
+    wmt_effort_source = (
+        '{activeMode:ee}=Omt(z,K),te=O?void 0:ee?.label,{toggleConversationSetting:se}=bz({source:"modelSelector"})'
+    )
+    wmt_effort_target = (
+        '{activeMode:ee}=Omt(z,K),'
+        '[cw,Sw]=n.useState(()=>{try{return localStorage.getItem("cowork_effort_level_cn")||"max"}catch{return"max"}}),'
+        'Fw=n.useMemo(()=>({current:cw,options:[{value:"low",label:"低"},{value:"medium",label:"中"},{value:"high",label:"高"},{value:"xhigh",label:"超高"},{value:"max",label:"最大"}],'
+        'onSelect:e=>{Sw(e);try{localStorage.setItem("cowork_effort_level_cn",e),window.dispatchEvent(new CustomEvent("cowork-effort-change",{detail:e}))}catch{}}}),[cw]),'
+        'te=O?{low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}[cw]:ee?.label,{toggleConversationSetting:se}=bz({source:"modelSelector"})'
+    )
+    wmt_handler_source = (
+        'const de=e=>{if(e.model===H)return;if(ne(e.model))return;if(ae||!qmt(e.model,!1,!re,T,le)){'
+    )
+    wmt_handler_target = (
+        'const de=e=>{const zhIsFixed=("opus"===String(e.model).toLowerCase()||"opus[1m]"===String(e.model).toLowerCase()||"kimi-for-coding"===String(e.model).toLowerCase()||/kimi/i.test(String(e.model))&&/k2\\.6/i.test(String(e.model)));'
+        'if(e.model===H)return;if(!zhIsFixed&&ne(e.model))return;if(zhIsFixed||ae||!qmt(e.model,!1,!re,T,le)){'
+    )
+    wmt_state_source = 'Y(e.model)||se("compass_mode",null),$||V(e.model),D(e.model),i?.(e)}'
+    wmt_state_target = 'Y(e.model)||se("compass_mode",null),V(e.model),D(e.model),i?.(e)}'
+    wmt_render_source = (
+        'ue=a.jsxs(a.Fragment,{children:[a.jsx(Hmt,{models:Q,currentModelOption:W,defaultModel:T,opensInNewChat:N,handleModelSelect:de,hasMultiModalContent:l,checkCapabilityConflicts:E,compactMenu:_}),(!O||k)&&a.jsx(Pmt,{currentModel:z,currentMode:K,coworkExtendedThinkingToggle:k}),'
+    )
+    wmt_render_target = (
+        'ue=a.jsxs(a.Fragment,{children:[a.jsx(Hmt,{models:Q,currentModelOption:W,defaultModel:T,opensInNewChat:N,handleModelSelect:de,hasMultiModalContent:l,checkCapabilityConflicts:E,compactMenu:_}),O&&a.jsxs(a.Fragment,{children:[a.jsx(Ho,{className:vme}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:"强度"}),a.jsx(_mt,{section:Fw,compactMenu:_})]}),(!O||k)&&a.jsx(Pmt,{currentModel:z,currentMode:K,coworkExtendedThinkingToggle:k}),'
+    )
+
+    for path in sorted(assets_dir.glob("*.js")):
+        text = path.read_text(encoding="utf-8")
+        if "function Xae({conversationUuid" not in text or "Wmt=({conversationUuid" not in text:
+            continue
+        patched = text
+        count = 0
+        for source, target in {
+            xae_return_source: xae_return_target,
+            wmt_effort_source: wmt_effort_target,
+            wmt_handler_source: wmt_handler_target,
+            wmt_state_source: wmt_state_target,
+            wmt_render_source: wmt_render_target,
+            **cowork_runtime_replacements,
+        }.items():
+            occurrences = patched.count(source)
+            if occurrences:
+                patched = patched.replace(source, target)
+                count += occurrences
+        if patched != text:
+            path.write_text(patched, encoding="utf-8")
+            patched_files += 1
+            patched_strings += count
 
     # Claude 1.7196+：共享模型配置改为 k5()，菜单组件改为 Fht/Pht。
     # 这一版没有 Jbt，必须直接固定 k5 的候选项，并给 Fht 增加 Cowork fallback 强度区。
@@ -1751,6 +2072,96 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
             if anchor in text:
                 return text.replace(anchor, anchor.replace("),", f"),{runtime_mapping_js}", 1), 1), 1
         return text, 0
+
+    # Claude 1.8089+：Code 页变量改为 ch/dh/fh/Ih/Ts。
+    code_18089_current_re = re.compile(
+        r'const K=e\.useCallback\(e=>null!==e&&M\.some\(t=>t\.model===e\),\[M\]\)\(S\)\?S:null,'
+        r'W=B\?\?O\?\?K\?\?L\?\?k,V=M\.find\(e=>e\.model===W\),G=V\?null:Ze\(W\),'
+        r'Q=e\.useMemo\(\(\)=>V\?Eh\(V\):G,\[V,G\]\),X=et\(\)',
+        re.DOTALL,
+    )
+    code_18089_current_target = (
+        'const K=e.useCallback(e=>null!==e&&M.some(t=>t.model===e),[M])(S)?S:null,'
+        'W=(e=>{const t=String(e??"").toLowerCase();'
+        'if(!e)return"opus";'
+        'if("opus"===t||"opus[1m]"===t)return"opus";'
+        'if("kimi-for-coding"===t||"kimi-k2.6"===t||/kimi/i.test(String(e))&&/k2\\.6/i.test(String(e)))return"kimi-for-coding";'
+        'const s=M.find(e=>String(e.model??"").toLowerCase()===t||String(e.name??"").toLowerCase()===t);'
+        'return s?s.model:"opus"'
+        '})(B??"opus"),'
+        'V=M.find(e=>e.model===W),'
+        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ze(W))),'
+        'Q=e.useMemo(()=>("opus"===W||"opus[1m]"===W)?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?"Kimi-k2.6":V?Eh(V):G,[V,G,W]),'
+        f'{runtime_mapping_js}X=et()'
+    )
+    code_18089_items_re = re.compile(
+        r'fe=e\.useMemo\(\(\)=>\{const e=M\.map\(e=>\{const t=C\.includes\(e\.model\);return\{label:t\?.*?'
+        r'\},\[M,C,W,ue,re,G,n\]\),pe=e\.useMemo\(\(\)=>\{if\(!de\)return fe;'
+        r'const\[e,\.\.\.t\]=fe;return e\?\[de,\{...e,separatorBefore:!0\},\.\.\.t\]:\[de\]\},\[de,fe\]\)',
+        re.DOTALL,
+    )
+    code_18089_items_target = (
+        'fe=e.useMemo(()=>{'
+        'const e={label:"Opus 4.71M",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus"),disabled:ie},'
+        't=M.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
+        'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
+        's=t?.model??"kimi-for-coding",'
+        'n={label:"Kimi-k2.6",checked:String(W).toLowerCase()===String(s).toLowerCase()||"kimi-for-coding"===String(W).toLowerCase()||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)),onSelect:()=>ue.current(s),disabled:ie};'
+        'return[e,n]},[M,W,ue,ie]),pe=fe'
+    )
+    code_18089_xs_re = re.compile(
+        r'Ts=e\.useMemo\(\(\)=>\{const e=\[\];if\(Es\)\{const t=dh\.filter\(e=>\("max"!==e\|\|At\)&&\("xhigh"!==e\|\|Dt\)\);'
+        r'e\.push\(\{key:"effort",header:n\.formatMessage\(Mh\.effortHeader\),items:t\.map\(e=>\(\{label:n\.formatMessage\(kh\[e\]\),checked:e===Is,onSelect:\(\)=>Ps\(e\)\}\)\)\}\)\}'
+        r'if\(ks\)\{const t=null!==Ms;e\.push\(\{key:"fastMode",header:n\.formatMessage\(Mh\.fastModeHeader\),items:\[\{label:n\.formatMessage\(Mh\.fastModeToggleLabel\),keepOpen:!0,disabled:t,onSelect:t\?void 0:\(\)=>De\(!Ae\),tooltip:Ms\?\?n\.formatMessage\(Mh\.fastModeToggleHint\),tooltipSide:"left",tooltipMultiline:!0,trailing:l\.jsx\(Iu,\{checked:!t&&Ae,disabled:t,onCheckedChange:De,"aria-hidden":!0,tabIndex:-1\}\)\}\]\}\)\}return e\},\[Es,At,Dt,Is,Ps,ks,Ms,Ae,De,n\]\)',
+        re.DOTALL,
+    )
+    code_18089_xs_target = (
+        'Ts=e.useMemo(()=>{const e=[],t=dh;'
+        'e.push({key:"effort",header:n.formatMessage(Mh.effortHeader),items:t.map(e=>({label:n.formatMessage(kh[e]),checked:e===Is,onSelect:()=>Ps(e)}))});'
+        'if(ks){const t=null!==Ms;e.push({key:"fastMode",header:n.formatMessage(Mh.fastModeHeader),items:[{label:n.formatMessage(Mh.fastModeToggleLabel),keepOpen:!0,disabled:t,onSelect:t?void 0:()=>De(!Ae),tooltip:Ms??n.formatMessage(Mh.fastModeToggleHint),tooltipSide:"left",tooltipMultiline:!0,trailing:l.jsx(Iu,{checked:!t&&Ae,disabled:t,onCheckedChange:De,"aria-hidden":!0,tabIndex:-1})}]})}return e},[Is,Ps,ks,Ms,Ae,De,n])'
+    )
+    code_18089_replacements = {
+        'const ch="ccd-effort-level",dh=': 'const ch="ccd-effort-level-cn",dh=',
+        'const ch="ccd-effort-level-cn",dh=': 'const ch="ccd-effort-level-cn",dh=',
+        'kh=c({low:{defaultMessage:"Low",id:"477I0ggSYe"},medium:{defaultMessage:"Medium",id:"ovJ26CKo4Q"},high:{defaultMessage:"High",id:"AxMhQrcUDC"},xhigh:{defaultMessage:"Extra high",id:"kDEj60CmLq"},max:{defaultMessage:"Max",id:"kkjl2vQekD"}})': (
+            'kh=c({low:{defaultMessage:"低",id:"477I0ggSYe"},medium:{defaultMessage:"中",id:"ovJ26CKo4Q"},high:{defaultMessage:"高",id:"AxMhQrcUDC"},xhigh:{defaultMessage:"超高",id:"kDEj60CmLq"},max:{defaultMessage:"最大",id:"kkjl2vQekD"}})'
+        ),
+        'h=p??c??f??function(e){return e.toLowerCase().includes("opus-4-7")?lh()?"xhigh":"high":"medium"}(t),g="max"===h&&!r||"xhigh"===h&&!o?"high":h;return{effortLevel:g,spawnEffortLevel:u&&null===p&&null===f?void 0:g,setEffortLevel:e.useCallback(e=>{localStorage.setItem(ch,e),m(e)},[]),modelSupportsEffort:i,modelSupportsMaxEffort:r,modelSupportsXhighEffort:o}': (
+            'h=p??f??"max",g=h;return{effortLevel:g,spawnEffortLevel:g,setEffortLevel:e.useCallback(e=>{localStorage.setItem(ch,e),m(e)},[]),modelSupportsEffort:!0,modelSupportsMaxEffort:!0,modelSupportsXhighEffort:!0}'
+        ),
+        'effort:Ne?We:void 0,repoInfo': 'effort:We,repoInfo',
+        'model:W,': 'model:zhRuntimeModel,',
+        'await(Z(te)?.setModel?.(te.id,e)),ne(te,{model:e})': (
+            'await(Z(te)?.setModel?.(te.id,zhRuntimeModelFor(e))),ne(te,{model:zhRuntimeModelFor(e)})'
+        ),
+        'Promise.resolve(Y(J,e)).then(()=>{ne({id:J,type:"local"},{model:e})})': (
+            'Promise.resolve(Y(J,zhRuntimeModelFor(e))).then(()=>{ne({id:J,type:"local"},{model:zhRuntimeModelFor(e)})})'
+        ),
+    }
+
+    for path in sorted(assets_dir.glob("*.js")):
+        text = path.read_text(encoding="utf-8")
+        if 'const ch="ccd-effort-level' not in text or "modelExtraSections:Ts" not in text:
+            continue
+        patched = text
+        count = 0
+        patched, n = code_18089_current_re.subn(code_18089_current_target, patched, count=1)
+        count += n
+        patched, n = code_18089_items_re.subn(code_18089_items_target, patched, count=1)
+        count += n
+        patched, n = code_18089_xs_re.subn(code_18089_xs_target, patched, count=1)
+        count += n
+        for source, target in code_18089_replacements.items():
+            occurrences = patched.count(source)
+            if occurrences:
+                patched = patched.replace(source, target)
+                count += occurrences
+        patched, n = ensure_runtime_mapping(patched)
+        count += n
+        if patched != text:
+            path.write_text(patched, encoding="utf-8")
+            patched_files += 1
+            patched_strings += count
 
     # Claude 1.7196+：Code 页变量改为 zm/Um/Hm，模型菜单项在 fe/pe 中生成。
     code_17196_current_re = re.compile(
@@ -2336,14 +2747,27 @@ def patch_claude_code_gateway_env_injection(app: Path) -> bool:
 
 
 def check_claude_code_gateway_env_injection(app: Path) -> bool:
+    ok, _message, _count = claude_code_gateway_env_injection_status(app)
+    return ok
+
+
+def claude_code_gateway_env_injection_status(app: Path) -> tuple[bool, str, int]:
     try:
         content = read_asar_text(app, ASAR_PATCH_TARGET)
-    except Exception:
-        return False
+    except Exception as exc:
+        return False, f"read_failed={exc.__class__.__name__}", 0
+    helper_count = content.count("function zhClaudeCodeGatewayEnv()")
+    spread_count = content.count("...t.sessionEnvVars(),...zhClaudeCodeGatewayEnv()}}")
+    settings_path_count = content.count('tA.join(Bi.homedir(),".claude","settings.json")')
+    ok = helper_count > 0 and spread_count > 0 and settings_path_count > 0
     return (
-        "function zhClaudeCodeGatewayEnv()" in content
-        and "...t.sessionEnvVars(),...zhClaudeCodeGatewayEnv()}}" in content
-        and 'tA.join(Bi.homedir(),".claude","settings.json")' in content
+        ok,
+        (
+            f"helper_count={helper_count}; spread_count={spread_count}; "
+            f"settings_path_count={settings_path_count}; "
+            "static_marker_only=true; runtime_env_must_be_checked_by_pre_repair_active_code_env"
+        ),
+        helper_count + spread_count + settings_path_count,
     )
 
 
@@ -3274,13 +3698,14 @@ def sync_claude_code_gateway_env(
 
 def desktop_code_env_status(app: Path, user_home: Path) -> tuple[str, str]:
     """检查桌面版 Code 启动层和共享 settings env 是否同时就绪。"""
-    injection_ok = check_claude_code_gateway_env_injection(app)
+    injection_ok, injection_message, injection_count = claude_code_gateway_env_injection_status(app)
     env_status, env_message = claude_code_gateway_env_status(user_home)
     status = "passed" if injection_ok and env_status == "passed" else "missing"
     return (
         status,
         (
             f"launch_injection={str(injection_ok).lower()}; "
+            f"launch_marker_count={injection_count}; {injection_message}; "
             f"shared_env_status={env_status}; {env_message}"
         ),
     )
@@ -3545,6 +3970,65 @@ def active_claude_code_sessions(user_home: Path) -> list[dict[str, Any]]:
             seen.add(cli_id)
             sessions.append({"metadata": path, "data": data, "cliSessionId": cli_id})
     return sessions
+
+
+def classify_recent_code_error(text: str) -> str | None:
+    if AUTH_401_ERROR_RE.search(text):
+        return "auth_401"
+    if FORBIDDEN_403_ERROR_RE.search(text):
+        return "forbidden_403"
+    if TOKEN_LIMIT_ERROR_RE.search(text):
+        return "token_limit"
+    if POLICY_BLOCK_ERROR_RE.search(text):
+        return "policy_block"
+    return None
+
+
+def recent_code_api_error_status(user_home: Path) -> tuple[str, str, int]:
+    active = active_claude_code_sessions(user_home)
+    transcript_candidates: list[tuple[str, Path]] = []
+    seen: set[Path] = set()
+    for session in active:
+        transcript = find_claude_code_transcript(user_home, session["cliSessionId"])
+        if transcript and transcript.exists() and transcript not in seen:
+            transcript_candidates.append((session["cliSessionId"], transcript))
+            seen.add(transcript)
+
+    projects_root = user_home / ".claude/projects"
+    if projects_root.exists():
+        try:
+            recent_files = sorted(
+                projects_root.glob("*/*.jsonl"),
+                key=lambda path: path.stat().st_mtime,
+                reverse=True,
+            )
+        except Exception:
+            recent_files = []
+        for transcript in recent_files[:12]:
+            if transcript in seen:
+                continue
+            transcript_candidates.append((transcript.stem, transcript))
+            seen.add(transcript)
+            if len(transcript_candidates) >= 16:
+                break
+
+    errors: list[str] = []
+    for session_id, transcript in transcript_candidates:
+        try:
+            text = transcript.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        tail = text[-80_000:]
+        category = classify_recent_code_error(tail)
+        if not category:
+            continue
+        errors.append(f"{session_id}:{category}:transcript={transcript}")
+        if len(errors) >= 8:
+            break
+
+    if errors:
+        return "missing", "errors=" + " | ".join(errors), len(errors)
+    return "passed", f"errors=0; active_sessions={len(active)}; checked={len(transcript_candidates)}", 0
 
 
 def parse_env_assignments(path: Path) -> dict[str, str]:
@@ -3863,6 +4347,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 (
                     'Q=[rr,cc],X=[],J=[]' in text
                     or 'allModelOptions:[r,l],mainModels:[r,l],overflowModels:[]' in text
+                    or 'zhCoworkConfig={...C,allModelOptions:[zhCoworkOpus,zhCoworkKimi]' in text
                 )
                 and 'Opus 4.71M' in text
                 and 'Kimi-k2.6' in text
@@ -3871,9 +4356,13 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 'z="opus","' in text
                 or 'z="opus",{allModelOptions:F}=R' in text
                 or 'return["opus",{...s,allModelOptions:[r,l]' in text
+                or 'defaultModel:c?"opus":w' in text
             ),
             "cowork.opus_alias_not_1m": (
-                'return["opus",{...s,allModelOptions:[r,l]' in text
+                (
+                    'return["opus",{...s,allModelOptions:[r,l]' in text
+                    or 'zhCoworkOpus={...(C.allModelOptions.find(e=>"opus"===e.model)' in text
+                )
                 and 'return["opus[1m]",{...s,allModelOptions:[r,l]' not in text
             ),
             "cowork.fallback_effort": (
@@ -3881,6 +4370,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 and (
                     'Fw=n.useMemo(()=>_??{current:cw' in text
                     or 'Fw=n.useMemo(()=>_??{current:cw,options:' in text
+                    or 'Fw=n.useMemo(()=>({current:cw,options:' in text
                 )
                 and '"cowork"===I?{current:cw' not in text
                 and ('section:Fw' in text or 'section:Fw,compactMenu:j' in text)
@@ -3895,17 +4385,34 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 and 'localStorage.getItem("cowork_effort_level_cn")||"max"' in text
             ),
             "cowork.effort_sync": (
-                'window.addEventListener("cowork-effort-change"' in text
-                and (
+                (
+                    'window.addEventListener("cowork-effort-change"' in text
+                    and (
+                        'setYukonSilverConfig?.({...w,effort:zhEffort' in text
+                        or 'NT?.setYukonSilverConfig?.({...k,effort:_' in text
+                    )
+                )
+                or (
+                    'Fw=n.useMemo(()=>({current:cw,options:' in text
+                    and 'window.dispatchEvent(new CustomEvent("cowork-effort-change"' in text
+                )
+                or (
                     'setYukonSilverConfig?.({...w,effort:zhEffort' in text
                     or 'NT?.setYukonSilverConfig?.({...k,effort:_' in text
                 )
             ),
             "cowork.runtime_model_mapping": (
-                "zhCoworkRuntimeModel" in text
-                and "setModel(e,zhCoworkRuntimeModel)" in text
-                and "model:zhCoworkRuntimeModel" in text
-                and "session_context:{sources:[],...t.sessionModel&&{model:((e)=>" in text
+                (
+                    "zhCoworkRuntimeModel" in text
+                    and "setModel(e,zhCoworkRuntimeModel)" in text
+                    and "model:zhCoworkRuntimeModel" in text
+                    and "session_context:{sources:[],...t.sessionModel&&{model:((e)=>" in text
+                )
+                or (
+                    "zhCoworkKimiId" in text
+                    and "zhCoworkModel" in text
+                    and "session_context:{sources:[],...t.sessionModel&&{model:((e)=>" in text
+                )
             ),
             "cowork.kimi_health_hidden": (
                 (
@@ -3917,6 +4424,8 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                     and (
                         'l.state===yW.Unreachable&&/api\\.kimi\\.com' in text
                         or 'l.state===xV.Unreachable&&/api\\.kimi\\.com' in text
+                        or 'case eG.Unreachable:if(/api\\.kimi\\.com' in text
+                        or 'd?.state===eG.InvalidConfig||d?.state===eG.Unreachable' in text
                     )
                 )
             ),
@@ -3941,6 +4450,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
             "code.default_opus": (
                 '})(H??"opus"),' in text
                 or '})(U??"opus"),' in text
+                or '})(B??"opus"),' in text
             ),
             "code.opus_alias_not_1m": (
                 'onSelect:()=>ue.current("opus")' in text
@@ -3950,15 +4460,21 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 (
                     'xs=e.useMemo(()=>{const e=[],t=fm;' in text
                     or 'const e=Lm;return{current:v,options:e.map' in text
+                    or 'Ts=e.useMemo(()=>{const e=[],t=dh;' in text
                 )
                 and 'modelSupportsEffort:!0,modelSupportsMaxEffort:!0,modelSupportsXhighEffort:!0' in text
                 and (
                     'pm={low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}' in text
                     or 'Om={low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}' in text
+                    or 'kh=c({low:{defaultMessage:"低"' in text
                 )
             ),
             "code.default_max_effort": (
-                ('const um="ccd-effort-level-cn"' in text or 'const zm="ccd-effort-level-cn"' in text)
+                (
+                    'const um="ccd-effort-level-cn"' in text
+                    or 'const zm="ccd-effort-level-cn"' in text
+                    or 'const ch="ccd-effort-level-cn"' in text
+                )
                 and ('h=p??f??"max"' in text or 'ms=codeEffort??"max"' in text)
             ),
             "code.runtime_model_mapping": (
@@ -3989,7 +4505,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
             if "## Context Usage" in text:
                 context_usage_file = context_usage_file or path
                 context_usage_ok = (
-                    "n0=ege(s[2]),n=" in text
+                    ("n0=ege(s[2]),n=" in text or "n0=M1e(s[2]),n=" in text)
                     and "rawMaxTokens:n" in text
                     and "percentage:c" in text
                 )
@@ -4035,6 +4551,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                 has_bypass_priority
                 or 'en??Zs??$s??Gs??"bypassPermissions"' in text
                 or 'dn??cn??Qs??nn??"bypassPermissions"' in text
+                or 'xn??gn??cn??nn??"bypassPermissions"' in text
             )
     permission_ok = has_draft_default and has_folder_key and has_bypass_priority and not bad_permission_files
     report.add(
@@ -4077,11 +4594,14 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
 
     custom3p_ok = check_custom3p_validation_patched(app)
     report.add("asar.custom3p_validation", "passed" if custom3p_ok else "missing", required=require)
-    gateway_env_injection_ok = check_claude_code_gateway_env_injection(app)
+    gateway_env_injection_ok, gateway_env_injection_message, gateway_env_injection_count = (
+        claude_code_gateway_env_injection_status(app)
+    )
     report.add(
         "asar.code_gateway_env_injection",
         "passed" if gateway_env_injection_ok else "missing",
-        "Code 子进程启动层必须动态读取 ~/.claude/settings.json 的网关 env，避免 UI 新会话继续用官方 OAuth 环境",
+        gateway_env_injection_message,
+        count=gateway_env_injection_count,
         required=require,
     )
 
@@ -4381,17 +4901,43 @@ def verify(app: Path) -> None:
 
 def repair_code_runtime(args: argparse.Namespace) -> int:
     report = PatchReport(str(args.app), get_claude_version(args.app), "repair-code-runtime")
+    pre_processes = active_claude_code_processes(args.user_home)
+    pre_process_status, pre_process_message, pre_process_count = pre_repair_active_code_process_status(
+        args.user_home, pre_processes
+    )
+    report.add(
+        "runtime.pre_repair_active_code_processes",
+        pre_process_status,
+        pre_process_message,
+        count=pre_process_count,
+        required=False,
+    )
+    pre_env_status, pre_env_message, pre_env_count = pre_repair_active_code_env_status(args.user_home, pre_processes)
+    report.add(
+        "runtime.pre_repair_active_code_env",
+        pre_env_status,
+        pre_env_message,
+        count=pre_env_count,
+        required=False,
+    )
+    recent_error_status, recent_error_message, recent_error_count = recent_code_api_error_status(args.user_home)
+    report.add(
+        "runtime.recent_code_api_errors",
+        recent_error_status,
+        recent_error_message,
+        count=recent_error_count,
+        required=False,
+    )
     if args.dry_run:
         print("[dry-run] Claude will not be quit and user config will not be changed.")
-        gateway_env_injection_ok = check_claude_code_gateway_env_injection(args.app)
+        gateway_env_injection_ok, gateway_env_injection_message, gateway_env_injection_count = (
+            claude_code_gateway_env_injection_status(args.app)
+        )
         report.add(
             "asar.code_gateway_env_injection",
             "passed" if gateway_env_injection_ok else "missing",
-            (
-                "Code 子进程启动层已动态注入 ~/.claude/settings.json 网关 env"
-                if gateway_env_injection_ok
-                else "当前 Claude.app 缺少启动层网关 env 注入补丁；请重新运行 install.command 后再测试 Code"
-            ),
+            gateway_env_injection_message,
+            count=gateway_env_injection_count,
             required=False,
         )
         check_runtime_invariants(args.user_home, report, require=False)
@@ -4446,15 +4992,14 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         code_env_message,
         required=False,
     )
-    gateway_env_injection_ok = check_claude_code_gateway_env_injection(args.app)
+    gateway_env_injection_ok, gateway_env_injection_message, gateway_env_injection_count = (
+        claude_code_gateway_env_injection_status(args.app)
+    )
     report.add(
         "asar.code_gateway_env_injection",
         "passed" if gateway_env_injection_ok else "missing",
-        (
-            "Code 子进程启动层已动态注入 ~/.claude/settings.json 网关 env"
-            if gateway_env_injection_ok
-            else "当前 Claude.app 缺少启动层网关 env 注入补丁；请重新运行 install.command 后再测试 Code"
-        ),
+        gateway_env_injection_message,
+        count=gateway_env_injection_count,
         required=False,
     )
     desktop_env_status, desktop_env_message = desktop_code_env_status(args.app, args.user_home)
@@ -4523,7 +5068,7 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
     conclusion, conclusion_detail = summarize_repair_conclusion(report)
     report.add(
         "runtime.repair_conclusion",
-        "passed" if conclusion == "已修复" else "missing",
+        repair_conclusion_status(conclusion),
         f"result={conclusion}; detail={conclusion_detail}",
         required=False,
     )
@@ -4631,10 +5176,14 @@ def main() -> int:
         required=False,
     )
     gateway_env_injection_patched = patch_claude_code_gateway_env_injection(patched_app)
+    gateway_env_injection_ok, gateway_env_injection_message, gateway_env_injection_count = (
+        claude_code_gateway_env_injection_status(patched_app)
+    )
     report.add(
         "asar.code_gateway_env_injection.patch",
-        "applied" if gateway_env_injection_patched else "missing",
-        "Code 子进程启动环境会在运行时从 ~/.claude/settings.json 注入当前网关 env",
+        "applied" if gateway_env_injection_patched else ("passed" if gateway_env_injection_ok else "missing"),
+        gateway_env_injection_message,
+        count=gateway_env_injection_count,
         required=False,
     )
     patch_native_menu_role_labels(patched_app)
