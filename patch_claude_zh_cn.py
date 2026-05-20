@@ -92,6 +92,7 @@ LANG_LIST_RE = re.compile(
     r'\["en-US","de-DE","fr-FR","ko-KR","ja-JP","es-419","es-ES","it-IT","hi-IN","pt-BR","id-ID"(.*?)\]'
 )
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+LOCALIZABLE_ENTRY_RE = re.compile(r'"((?:\\.|[^"\\])*)"\s*=\s*"((?:\\.|[^"\\])*)";')
 
 KNOWN_FRONTEND_I18N_KEYS: dict[str, str] = {
     "0rLmv1esFb": "隐私页：更新检查请求说明",
@@ -204,6 +205,11 @@ KNOWN_FRONTEND_I18N_KEYS: dict[str, str] = {
     "y/6sGoi9YF": "第三方推理设置：连接器与扩展",
     "zUO6Ii5EAT": "第三方推理设置：添加模型",
     "zPhYdevJ+s": "第三方推理设置：工具策略说明",
+}
+
+KNOWN_LOCALIZABLE_MENU_STRINGS: dict[str, str] = {
+    "Background tasks": "后台任务",
+    "Background Tasks": "后台任务",
 }
 
 DEV_MENU_LABEL_REPLACEMENTS: dict[str, str] = {
@@ -464,6 +470,50 @@ def repair_conclusion_status(conclusion: str) -> str:
     return "passed" if conclusion in REPAIR_PASSED_CONCLUSIONS else "missing"
 
 
+def is_stale_anthropic_runtime_model(model: Any) -> bool:
+    """识别会绕开第三方网关默认模型的旧 Claude/Anthropic 会话模型。"""
+    value = str(model or "").strip().lower()
+    if not value:
+        return False
+    if value in {
+        "default",
+        "opus",
+        "opus[1m]",
+        SAFE_OPUS_MODEL_ID,
+        LEGACY_1M_OPUS_MODEL_ID,
+    }:
+        return True
+    return (
+        value.startswith("claude-")
+        or value.startswith("anthropic/")
+        or value.startswith("anthropic.")
+        or value in {"sonnet", "opus", "haiku"}
+    )
+
+
+def active_code_process_model_status(
+    processes: list[dict[str, str]], preferred_model: str | None = None
+) -> tuple[str, str, int]:
+    if not processes:
+        return "passed", "active=0", 0
+    stale: list[str] = []
+    details: list[str] = []
+    for item in processes[:8]:
+        model = item.get("model") or ""
+        is_stale = is_stale_anthropic_runtime_model(model)
+        if is_stale:
+            stale.append(item.get("pid") or "unknown")
+        details.append(
+            f"pid={item.get('pid')}; model={model or 'unknown'}; stale={str(is_stale).lower()}"
+        )
+    status = "missing" if stale else "passed"
+    return (
+        status,
+        f"active={len(processes)}; preferred_model={preferred_model or 'unknown'}; " + " | ".join(details),
+        len(stale),
+    )
+
+
 def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
     project_event = find_report_event(report, "runtime.active_project_env_overrides")
     if project_event and project_event.status == "missing" and (project_event.count or 0) > 0:
@@ -480,6 +530,13 @@ def summarize_repair_conclusion(report: PatchReport) -> tuple[str, str]:
         return "共享 API Key 无效或过期", combined
     if re.search(r"status=(url_error|timeout|os_error)", combined):
         return "网关不可达", combined
+
+    stale_model_event = find_report_event(report, "runtime.pre_repair_active_code_model")
+    if stale_model_event and stale_model_event.status == "missing" and (stale_model_event.count or 0) > 0:
+        migrated_event = find_report_event(report, "runtime.saved_session_dynamic_model")
+        if migrated_event and migrated_event.status in {"applied", "passed"}:
+            return "已修复", stale_model_event.message
+        return "桌面版活动子进程使用旧模型", stale_model_event.message
 
     pre_env_event = find_report_event(report, "runtime.pre_repair_active_code_env")
     if pre_env_event and pre_env_event.status == "missing" and (pre_env_event.count or 0) > 0:
@@ -649,6 +706,45 @@ def check_known_frontend_i18n(app: Path) -> tuple[bool, str, int]:
     return not failures, "; ".join(failures), checked
 
 
+def load_localizable_strings(path: Path) -> dict[str, str]:
+    text = path.read_text(encoding="utf-16", errors="ignore")
+    return {match.group(1): match.group(2) for match in LOCALIZABLE_ENTRY_RE.finditer(text)}
+
+
+def check_localizable_menu_i18n(app: Path) -> tuple[bool, str, int]:
+    resources_dir = app / DESKTOP_RESOURCES_REL
+    failures: list[str] = []
+    checked = 0
+    locale_files = [
+        resources_dir / "zh-CN.lproj" / "Localizable.strings",
+        resources_dir / "zh_CN.lproj" / "Localizable.strings",
+    ]
+    for path in locale_files:
+        if not path.exists():
+            failures.append(f"缺少 {path.relative_to(app)}")
+            continue
+        try:
+            data = load_localizable_strings(path)
+        except Exception as exc:
+            failures.append(f"读取 {path.relative_to(app)} 失败：{exc}")
+            continue
+        for source, expected in KNOWN_LOCALIZABLE_MENU_STRINGS.items():
+            checked += 1
+            translated = data.get(source)
+            if translated is None:
+                failures.append(f"{path.parent.name}:{source} 缺少")
+                continue
+            if translated == source:
+                failures.append(f"{path.parent.name}:{source} 仍等于英文原文")
+                continue
+            if not CJK_RE.search(translated):
+                failures.append(f"{path.parent.name}:{source} 不包含中文字符")
+                continue
+            if translated != expected:
+                failures.append(f"{path.parent.name}:{source} 当前为 {translated!r}，预期 {expected!r}")
+    return not failures, "; ".join(failures), checked
+
+
 def require_file(path: Path) -> None:
     if not path.exists():
         raise SystemExit(f"Missing required file: {path}")
@@ -799,11 +895,13 @@ def pre_repair_active_code_env_status(
             isinstance(expected_key, str) and isinstance(api_key, str) and api_key.strip() == expected_key.strip()
         )
         oauth_present = bool(str(env.get("CLAUDE_CODE_OAUTH_TOKEN") or "").strip())
-        ok = (
-            env_status == "passed"
-            and base_match
-            and (credential_mode in {"sso", "credential_helper"} or (token_match and api_key_match))
-        )
+        if credential_mode in {"sso", "credential_helper"}:
+            credential_ok = True
+        elif auth_scheme == "x-api-key":
+            credential_ok = api_key_match
+        else:
+            credential_ok = token_match or api_key_match
+        ok = env_status == "passed" and base_match and credential_ok
         if not ok:
             failures += 1
         details.append(
@@ -884,6 +982,8 @@ def patch_hardcoded_frontend_strings(
     replacements = {
         '"New task"': '"新建任务"',
         '"New session"': '"新会话"',
+        '"Background tasks"': '"后台任务"',
+        '"Background Tasks"': '"后台任务"',
         '"Drag to pin"': '"拖到此处固定"',
         '"Drop here"': '"拖到此处"',
         '"Let go"': '"松开"',
@@ -4067,7 +4167,11 @@ def set_claude_code_dynamic_defaults(user_home: Path) -> tuple[str | None, dict[
 
 
 def migrate_saved_session_dynamic_model(user_home: Path, preferred_model: str | None) -> int:
-    """把旧 Opus 伪装会话迁移到真实 provider 默认模型，避免上下文能力继续按伪装模型计算。"""
+    """把旧伪装/官方默认会话迁移到真实 provider 默认模型。
+
+    旧 Code 会话可能保存了 default、claude-sonnet-*、opus 等模型。即使 install 已同步
+    settings，新打开这些会话时仍会用旧模型启动子进程，导致第三方网关 401。
+    """
     if not preferred_model:
         return 0
     roots = [
@@ -4084,23 +4188,26 @@ def migrate_saved_session_dynamic_model(user_home: Path, preferred_model: str | 
             except Exception:
                 continue
             dirty = False
-            if data.get("model") in {SAFE_OPUS_MODEL_ID, LEGACY_1M_OPUS_MODEL_ID}:
-                data["model"] = preferred_model
-                dirty = True
-            session_data = data.get("sessionData")
-            if isinstance(session_data, dict):
-                session_context = session_data.get("session_context")
-                if isinstance(session_context, dict) and session_context.get("model") in {
-                    SAFE_OPUS_MODEL_ID,
-                    LEGACY_1M_OPUS_MODEL_ID,
-                }:
-                    session_context["model"] = preferred_model
-                    dirty = True
+
+            def update_models(value: Any) -> None:
+                nonlocal dirty
+                if isinstance(value, dict):
+                    for key, child in list(value.items()):
+                        if key in {"model", "sessionModel"} and is_stale_anthropic_runtime_model(child):
+                            value[key] = preferred_model
+                            dirty = True
+                        else:
+                            update_models(child)
+                elif isinstance(value, list):
+                    for child in value:
+                        update_models(child)
+
+            update_models(data)
             if dirty:
                 save_json(path, data)
                 changed += 1
     if changed:
-        print(f"Migrated saved Claude Code sessions from Opus alias to provider model {preferred_model}: {changed}")
+        print(f"Migrated saved Claude Code sessions from stale model to provider model {preferred_model}: {changed}")
     return changed
 
 
@@ -4762,6 +4869,15 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
         required=require,
     )
 
+    localizable_ok, localizable_message, localizable_count = check_localizable_menu_i18n(app)
+    report.add(
+        "i18n.localizable_menu_labels",
+        "passed" if localizable_ok else "missing",
+        localizable_message,
+        count=localizable_count,
+        required=require,
+    )
+
     dev_menu_ok, dev_menu_message, dev_menu_count = check_developer_menu_i18n(app)
     report.add(
         "i18n.developer_menu_labels",
@@ -5090,6 +5206,7 @@ def verify(app: Path) -> None:
 def repair_code_runtime(args: argparse.Namespace) -> int:
     report = PatchReport(str(args.app), get_claude_version(args.app), "repair-code-runtime")
     pre_processes = active_claude_code_processes(args.user_home)
+    pre_preferred_model, _ = preferred_gateway_model_id(args.user_home)
     pre_process_status, pre_process_message, pre_process_count = pre_repair_active_code_process_status(
         args.user_home, pre_processes
     )
@@ -5098,6 +5215,16 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         pre_process_status,
         pre_process_message,
         count=pre_process_count,
+        required=False,
+    )
+    pre_model_status, pre_model_message, pre_model_count = active_code_process_model_status(
+        pre_processes, pre_preferred_model
+    )
+    report.add(
+        "runtime.pre_repair_active_code_model",
+        pre_model_status,
+        pre_model_message,
+        count=pre_model_count,
         required=False,
     )
     pre_env_status, pre_env_message, pre_env_count = pre_repair_active_code_env_status(args.user_home, pre_processes)
@@ -5243,6 +5370,7 @@ def repair_code_runtime(args: argparse.Namespace) -> int:
         "runtime.saved_session_dynamic_model",
         "applied" if migrated_sessions else "passed",
         f"migrated={migrated_sessions}",
+        count=migrated_sessions,
         required=False,
     )
     sanitized_sessions, sanitize_details = sanitize_active_oversized_sessions(args.user_home)
@@ -5338,9 +5466,21 @@ def main() -> int:
     if os.geteuid() != 0 and in_applications:
         print("This usually needs sudo because /Applications is protected.", file=sys.stderr)
 
+    preferred_model, model_metadata = preferred_gateway_model_id(args.user_home)
     if args.dry_run:
         print("[dry-run] Claude will not be quit.")
     else:
+        pre_processes = active_claude_code_processes(args.user_home)
+        pre_model_status, pre_model_message, pre_model_count = active_code_process_model_status(
+            pre_processes, preferred_model
+        )
+        report.add(
+            "runtime.pre_install_active_code_model",
+            pre_model_status,
+            pre_model_message,
+            count=pre_model_count,
+            required=False,
+        )
         quit_claude()
         terminated = terminate_claude_code_children(args.user_home, args.dry_run)
         report.add(
@@ -5349,7 +5489,6 @@ def main() -> int:
             f"terminated={terminated}",
             required=False,
         )
-    preferred_model, model_metadata = preferred_gateway_model_id(args.user_home)
     provider_context_window = context_window_from_metadata(model_metadata)
     tmp_root = Path(tempfile.mkdtemp(prefix="claude-zh-cn-patch."))
     patched_app = tmp_root / "Claude.app"
@@ -5502,6 +5641,7 @@ def main() -> int:
             "runtime.saved_session_dynamic_model",
             "applied" if migrated_sessions else "passed",
             f"migrated={migrated_sessions}",
+            count=migrated_sessions,
             required=False,
         )
         sanitized_sessions, sanitize_details = sanitize_active_oversized_sessions(args.user_home)
