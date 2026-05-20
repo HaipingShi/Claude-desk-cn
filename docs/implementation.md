@@ -260,6 +260,8 @@ Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化
 - `1.6608.2` 中 `Jbt` 从旧的外层 `conversationUuid` 组件拆成 `Jbt=({models:e,currentModelOption...})` 共享列表组件，外层配置仍负责 `Q/X/J`、当前模型和强度 section。脚本必须同时识别两种结构。
 - Cowork 默认：共享选择器内部仍显示 `Opus 4.71M` 作为首项，旧 sticky 里的 `kimi-for-coding` / `Kimi-k2.6` 不再绑架新打开 Cowork 的显示默认；真实 Claude Code 请求模型由 provider 默认模型同步逻辑处理。
 - Cowork 强度：`Jbt` 只在 Code 传入 `ccdEffortSection` 时有原生强度 section；Cowork 不传该 section，因此补丁会在 `Jbt` 内增加 fallback section。只要原生 section 缺失，就无条件使用 fallback，不再依赖 `activeMode` 字符串判断。默认值为 `max`，显示为“最大”，选中后写入补丁专用 `localStorage["cowork_effort_level_cn"]` 并派发 `cowork-effort-change`。
+- Claude `1.8089+` 的 Cowork 入口为 `Xae/Wmt`。这一版里旧补丁曾把强度区渲染成 `a.jsx(_mt,{section:Fw,...})`，但 `_mt` 已经变成无参 feature flag helper，会导致菜单只显示“强度”标题、没有任何可选项。当前实现使用 `zhCoworkEffortOptions` 作为稳定 marker，并在 `Wmt` 中内联渲染五档强度菜单项；升级适配时必须检查 `a.jsx(_mt,{section:Fw` 不再出现在主 bundle 中。
+- Cowork 模型点击：`1.8089+` 的 `Wmt` 在 `sticky_model_selector` 打开时会忽略组件内临时选择状态，导致点击 `Kimi-k2.6` 后立刻回到 `Opus 4.71M`。补丁必须让当前界面选择 `q` 优先于默认模型 `z`，诊断项 `cowork.current_selection_local` 用于防止这类“可见但不可选”的回归。
 - Cowork 配置同步：Cowork 配置处监听 `cowork-effort-change`，让 `NT.setYukonSilverConfig({ effort })` 能使用最新强度。这样点击 `超高` 或 `最大` 后，不只更新菜单，也会进入后续会话配置。
 - Cowork 健康横幅：新版 `EQt/yW.Unreachable` 结构下，对 `api.kimi.com` 旧健康状态做隐藏处理。
 - Code 页面：`zm()` 内的 `W/Q/pe/me` 负责模型菜单，`hm()/gm()` 和 `xs` 负责强度菜单；没有当前界面临时选择时，显示默认仍是 `Opus 4.71M`，强度固定为 `max`。真实请求模型由 `zhRuntimeModelFor()` 映射到 provider 默认模型，启动对象必须使用 `model:zhRuntimeModel`，不能再把显示用的 `model:W` 直接传入。强度必须无条件生成五档，不再依赖 `De`、`Fe`、`Oe`、旧 `ccd-effort-level` 缓存或本机环境。

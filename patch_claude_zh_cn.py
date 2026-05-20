@@ -95,26 +95,115 @@ CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 KNOWN_FRONTEND_I18N_KEYS: dict[str, str] = {
     "0rLmv1esFb": "隐私页：更新检查请求说明",
+    "0hPFsTuQ1X": "第三方推理设置：自定义请求头说明",
+    "1QKV7FS8FM": "第三方推理设置：允许用户添加 MCP 服务器",
+    "1v9Ga0vYPM": "第三方推理设置：内置工具移除说明",
     "16+ehubl/n": "隐私页：崩溃报告说明",
+    "/m0q/Dre6A": "第三方推理设置：模型 ID",
+    "3WKlYlcDGA": "第三方推理设置：组织插件",
+    "3iLLaW8pc5": "第三方推理设置：令牌窗口说明",
+    "4RwYWBmY40": "第三方推理设置：非必要服务说明",
+    "4tdiEppQ3S": "第三方推理设置：基础遥测分组",
     "4RK/3dvxuB": "删除会话弹窗：多会话删除说明",
+    "5oTa1gWQsk": "第三方推理设置：允许的出站主机",
+    "6T78KTXhBM": "第三方推理设置：自定义推理请求头",
+    "6TgDeF8iRs": "第三方推理设置：添加策略按钮",
+    "6cmRKZgiFv": "第三方推理设置：网关 URL 说明",
+    "8Jc9WEC0S8": "第三方推理设置：桌面扩展出站标签",
+    "8TQoLRh7Ea": "第三方推理设置：秒",
+    "83Dth0tmbB": "第三方推理设置：下载 txt",
+    "G/QQvx0Tsd": "第三方推理设置：覆盖模型列表说明",
+    "HIjCnaQF93": "第三方推理设置：辅助脚本缓存 TTL",
+    "Amxb69AvfR": "第三方推理设置：连接页说明",
+    "Ba3MtjwP5h": "第三方推理设置：遥测与更新",
+    "CCUxBOb3va": "第三方推理设置：禁用深度链接",
     "CbPYtuP6+N": "隐私页：身份和账号说明",
+    "CwADEGuH8H": "第三方推理设置：沙盒与工作区",
+    "DHdnIxD7G9": "第三方推理设置：禁用 Claude.ai 登录",
+    "DnXPcFgmqb": "第三方推理设置：凭据辅助脚本",
+    "DC+lIM7C8k": "第三方推理设置：托管 MCP 服务器",
+    "IxbsWX4wj4": "第三方推理设置：添加请求头按钮",
+    "JQs8c3pGcl": "第三方推理设置：网关基础 URL",
+    "KZbdbvaU9V": "第三方推理设置：插件与技能",
+    "KtZV9pULgo": "第三方推理设置：连接",
+    "L+geN0DrtO": "第三方推理设置：网关登录",
     "MYYAX2WEkL": "隐私页：Anthropic 可能收到的内容标题",
+    "NA4SBfPMeA": "第三方推理设置：网关 API 密钥",
+    "OX1+jdVwLL": "第三方推理设置：阻止自动更新",
+    "PNFwYup600": "第三方推理设置：自动更新分组",
     "QhJxtbMJfB": "会话批量菜单：归档",
+    "RtLYfLZ2bT": "第三方推理设置：辅助脚本 TTL",
     "SKeCK+7hmh": "Claude Code 设置：本地会话标题",
+    "StnRZmM3Xn": "第三方推理设置：绝对路径",
+    "TGyeqFZWHH": "第三方推理设置：辅助脚本缓存说明",
+    "TkA72ubrGt": "第三方推理设置：测试连接",
     "U5lBq+CZ7G": "隐私页：匿名使用指标说明",
     "ULnTQCHxiV": "隐私页：Anthropic 看不到的内容标题",
     "UmH4IX1ER9": "会话批量菜单：标为未读",
+    "UntW78doSE": "第三方推理设置：连接失败提示",
+    "UzLHrala3Q": "第三方推理设置：非必要遥测分组",
+    "W41+8Xj7fP": "第三方推理设置：复制主机名",
+    "XtXm3euW3d": "第三方推理设置：非必要遥测原因",
+    "Yk0+YjpaDc": "第三方推理设置：深度链接禁用说明",
+    "ZON8uMn14w": "第三方推理设置：令牌单位",
+    "ZRMqH+j2yz": "第三方推理设置：测试模型发现",
+    "a87VTwtQw3": "第三方推理设置：1M 上下文变体",
+    "aRuqK/KXrl": "第三方推理设置：推理后端说明",
+    "aTTY7rU6Bh": "第三方推理设置：每窗口最大令牌",
     "akXG4ChYkN": "Claude Code 设置：默认启用远程控制",
+    "bmP92ZCban": "第三方推理设置：要求扩展已签名",
+    "dzVdmB+VtN": "第三方推理设置：Code 标签页说明",
+    "dYlenA3UP7": "第三方推理设置：OpenTelemetry 分组",
+    "eF+Y8JJNCJ": "第三方推理设置：允许 Code 标签页",
+    "eZ5nPbhsce": "第三方推理设置：未找到组织插件",
+    "EATQrlttOw": "第三方推理设置：组织 UUID",
+    "EGOuVJosgc": "第三方推理设置：基础遥测说明",
+    "FSyyISlTnS": "第三方推理设置：令牌限制窗口",
+    "GYrwE5ehu1": "第三方推理设置：工具出站标签",
+    "HA2UIzGsaT": "第三方推理设置：阻止非必要服务",
+    "1oztgcYddf": "第三方推理设置：阻止自动更新风险说明",
     "fVfPjDIwfi": "隐私页：对话内容说明",
     "geOrzylJdv": "Claude Code 设置：组织策略禁用远程控制",
     "gshbVTjZni": "连接器页：迁移到自定义提示",
     "gkoSAmTJDl": "会话批量菜单：删除",
+    "hhKxQ3MtxT": "第三方推理设置：内置工具策略",
     "h3IJeFcbkv": "Claude Code 设置：远程控制自动连接说明",
     "hcpszlrtjU": "删除会话弹窗：单会话删除说明",
+    "hv0F38ESRM": "第三方推理设置：模型列表",
+    "i8fSuvZDK/": "第三方推理设置：固定模型列表说明",
+    "iGPHC9Tm20": "第三方推理设置：禁用的内置工具",
+    "jU4z+3Uk7+": "第三方推理设置：模型发现",
+    "jJz20QocAd": "第三方推理设置：自动更新强制窗口",
+    "4MengK4xQ/": "第三方推理设置：小时单位",
+    "knHnvzpkOf": "第三方推理设置：允许桌面扩展",
+    "nOBN85iT+Z": "第三方推理设置：组织插件目录说明",
+    "oo4Av05fBn": "第三方推理设置：阻止非必要遥测",
+    "ozzKmITBMv": "第三方推理设置：令牌软限制说明",
     "kT5Jg7Fz/u": "删除会话弹窗：标题",
+    "ll3OMXtx55": "第三方推理设置：网关连接说明",
+    "pBgZotXlmX": "第三方推理设置：凭据辅助脚本说明",
+    "pMWMhEu56d": "第三方推理设置：无效响应",
     "qgN98bidUV": "隐私页：文件和工作区内容说明",
+    "rdKIIOydC8": "第三方推理设置：阻止基础遥测",
+    "recCg9im82": "第三方推理设置：更新分组",
+    "siNA1noRXi": "第三方推理设置：网关认证说明",
+    "slIZF8X6Sk": "第三方推理设置：添加服务器策略",
+    "t0NuWXREIj": "第三方推理设置：出站域名说明",
+    "tNxpKP4AlE": "第三方推理设置：阻止更新说明",
+    "tgblN/n/hK": "第三方推理设置：工作区文件夹说明",
     "tgkg69DKCl": "隐私页：第三方推理提供商说明",
+    "tmwK1KjFte": "第三方推理设置：网关认证方案",
+    "x+MG25XWVf": "第三方推理设置：请求头辅助脚本",
+    "x8r3+rMaHq": "第三方推理设置：凭据辅助脚本超时",
+    "xovdJlXIM6": "第三方推理设置：OpenTelemetry 收集器端点",
+    "xWiIy0pAlB": "第三方推理设置：自动模型发现说明",
+    "xY1EE6Ndl5": "第三方推理设置：出站要求",
     "xyS7d891o+": "隐私页：诊断报告发送说明",
+    "y8c8KzJEws": "第三方推理设置：显示名称说明",
+    "y3gym+4SMI": "第三方推理设置：允许的工作区文件夹",
+    "y/6sGoi9YF": "第三方推理设置：连接器与扩展",
+    "zUO6Ii5EAT": "第三方推理设置：添加模型",
+    "zPhYdevJ+s": "第三方推理设置：工具策略说明",
 }
 
 DEV_MENU_LABEL_REPLACEMENTS: dict[str, str] = {
@@ -141,10 +230,20 @@ CUSTOM3P_SETUP_REPLACEMENTS: dict[str, str] = {
     'defaultMessage:"How the gateway credential is sent. Choose Bearer or x-api-key for a static key or credential-helper output; choose SSO to have each user sign in via your identity provider."': 'defaultMessage:"网关凭据的发送方式。静态密钥或凭据辅助脚本输出请选择 Bearer 或 x-api-key；如需每个用户通过身份提供商登录，请选择 SSO。"',
     'defaultMessage:"Custom inference headers"': 'defaultMessage:"自定义推理请求头"',
     'defaultMessage:"Extra HTTP headers sent on every inference request to the configured provider. For tenant routing, org IDs, Bedrock Guardrails, etc."': 'defaultMessage:"每次推理请求都会发送到已配置提供商的额外 HTTP 请求头。可用于租户路由、组织 ID、Bedrock Guardrails 等。"',
+    'defaultMessage:"Helper script"': 'defaultMessage:"凭据辅助脚本"',
+    'defaultMessage:"Helper script TTL"': 'defaultMessage:"辅助脚本 TTL"',
+    'defaultMessage:"Credential helper timeout"': 'defaultMessage:"凭据辅助脚本超时"',
     'defaultMessage:"Test connection"': 'defaultMessage:"测试连接"',
     'defaultMessage:"Test connection is not available for local (stdio) servers."': 'defaultMessage:"本地（stdio）服务器不支持测试连接。"',
     'defaultMessage:"Add header"': 'defaultMessage:"添加请求头"',
     'defaultMessage:"Models"': 'defaultMessage:"模型"',
+    'defaultMessage:"Model discovery"': 'defaultMessage:"模型发现"',
+    'defaultMessage:"Test model discovery"': 'defaultMessage:"测试模型发现"',
+    'defaultMessage:"Auto-populate the model picker from {url} at launch."': 'defaultMessage:"启动时从 {url} 自动填充模型选择器。"',
+    'defaultMessage:"Model list"': 'defaultMessage:"模型列表"',
+    'defaultMessage:"Override the auto-discovered model list. First entry is the default."': 'defaultMessage:"覆盖自动发现的模型列表。第一项为默认值。"',
+    'defaultMessage:"Models to show in the picker. First entry is the default."': 'defaultMessage:"在选择器中显示的模型。第一项为默认值。"',
+    'defaultMessage:"Add model"': 'defaultMessage:"添加模型"',
     'defaultMessage:"Extensions"': 'defaultMessage:"扩展"',
     'defaultMessage:"MCP servers"': 'defaultMessage:"MCP 服务器"',
     'defaultMessage:"Organization banner"': 'defaultMessage:"组织横幅"',
@@ -152,7 +251,15 @@ CUSTOM3P_SETUP_REPLACEMENTS: dict[str, str] = {
     'defaultMessage:"Show banner"': 'defaultMessage:"显示横幅"',
     'defaultMessage:"Banner text"': 'defaultMessage:"横幅文本"',
     'defaultMessage:"Internal use only"': 'defaultMessage:"仅供内部使用"',
+    'defaultMessage:"Allow desktop extensions"': 'defaultMessage:"允许桌面扩展"',
+    'defaultMessage:"Require signed extensions"': 'defaultMessage:"要求扩展已签名"',
     'defaultMessage:"Reject desktop extensions that are not signed by a trusted publisher."': 'defaultMessage:"拒绝未由受信任发布者签名的桌面扩展。"',
+    'defaultMessage:"Allow user-added MCP servers"': 'defaultMessage:"允许用户添加 MCP 服务器"',
+    'defaultMessage:"Managed MCP servers"': 'defaultMessage:"托管的 MCP 服务器"',
+    'defaultMessage:"No organization plugins found"': 'defaultMessage:"未找到组织插件"',
+    'defaultMessage:"Organization plugins"': 'defaultMessage:"组织插件"',
+    'defaultMessage:"+ Add server policy"': 'defaultMessage:"+ 添加服务器策略"',
+    'defaultMessage:"Mount plugin bundles to this folder using your device-management tool and Cowork will load them at launch. The folder is read-only; tool policies you set below are saved in this configuration."': 'defaultMessage:"请使用你的设备管理工具将插件包挂载到此文件夹，Cowork 会在启动时加载它们。此文件夹为只读；你在下方设置的工具策略会保存在此配置中。"',
     'defaultMessage:"Users see only this provider at the login screen. The option to sign in to Claude.ai is hidden."': 'defaultMessage:"用户在登录页只会看到此提供商，登录 Claude.ai 的选项会被隐藏。"',
     'defaultMessage:"Your provider setup needs a fix"': 'defaultMessage:"提供商配置需要修复"',
     'defaultMessage:"Some required fields are missing or malformed. Open Setup to finish configuring it."': 'defaultMessage:"部分必填字段缺失或格式不正确。请打开设置完成配置。"',
@@ -818,6 +925,7 @@ def patch_hardcoded_frontend_strings(
         'body:"Sent on every inference and `/v1/models` discovery request (joined into the CLI\'s `ANTHROPIC_CUSTOM_HEADERS`).\\n\\nUse this for fleet-wide constants. For per-user or per-session values, have the **credential helper script** emit JSON with a `headers` field — those are merged over these static entries (helper wins on conflict)."': 'body:"每次推理和 `/v1/models` 发现请求都会发送这些请求头（会合并到 CLI 的 `ANTHROPIC_CUSTOM_HEADERS`）。\\n\\n适合填写全局固定值。针对单个用户或会话的值，请让**凭据辅助脚本**输出包含 `headers` 字段的 JSON；这些值会覆盖此处的静态项（冲突时辅助脚本优先）。"',
         'title:"Inference provider"': 'title:"推理提供商"',
         'description:"Selects the inference backend. Setting this key activates third-party mode."': 'description:"选择推理后端。设置此项会启用第三方模式。"',
+        'oGt={gateway:"Gateway",anthropic:"Anthropic API",bedrock:"Bedrock",vertex:"Vertex",foundry:"Foundry"}': 'oGt={gateway:"网关",anthropic:"Anthropic API",bedrock:"Bedrock",vertex:"Vertex",foundry:"Foundry"}',
         'title:"GCP project ID"': 'title:"GCP 项目 ID"',
         'title:"GCP region"': 'title:"GCP 区域"',
         'title:"GCP credentials file path"': 'title:"GCP 凭据文件路径"',
@@ -834,15 +942,19 @@ def patch_hardcoded_frontend_strings(
         'title:"Azure AI Foundry resource name"': 'title:"Azure AI Foundry 资源名称"',
         'title:"Azure AI Foundry API key"': 'title:"Azure AI Foundry API 密钥"',
         'title:"Model list"': 'title:"模型列表"',
+        'body:"Auto-populate the model picker from the provider\'s model-list endpoint at launch. Turn off if the endpoint isn\'t reachable from your network, or to use a fixed list. When off, the model list below is required and must use full model IDs (aliases like sonnet/opus are resolved via discovery)."': 'body:"启动时从提供商的模型列表端点自动填充模型选择器。如果你的网络无法访问该端点，或需要使用固定模型列表，请关闭此项。关闭后，下方模型列表为必填，并且必须使用完整模型 ID（sonnet/opus 等别名会通过发现结果解析）。"',
         'title:"Managed MCP servers"': 'title:"托管的 MCP 服务器"',
         'description:\'JSON array of MCP server configs. Each entry: `name` (string, required, unique within array), `url` (https URL, required), `transport` ("http" or "sse", default "http"), `headers` (string→string map, optional, mutually exclusive with `oauth`), `headersHelper` (absolute path to local executable that prints a JSON object of HTTP headers on stdout — for rotating bearers; optional, mutually exclusive with `oauth`; merged over `headers`, helper wins on conflict. The helper runs with the app\'s launch environment, not your shell rc — read credentials from keychain/file or source them explicitly in the script), `headersHelperTtlSec` (positive integer, default 300 — re-runs the helper at most once per TTL across connection attempts), `oauth` (boolean or object, optional — `true` triggers dynamic-registration PKCE; `{"clientId":"<id>"}` skips registration and uses a pre-registered public client (register redirect URI `http://127.0.0.1:53280/callback` on it — Entra/Google accept the portless `http://127.0.0.1/callback`, but providers that match the port exactly need 53280). Optional `tenantId` (Entra Directory ID) pins the authorization server for single-tenant apps; `scope` is required when `tenantId` is set), `toolPolicy` (toolName→"allow"/"ask"/"blocked", optional — locks the per-tool approval state; unset = user controls). Connections are made from a host-side utility process and do not pass through the in-VM allowlist.\'': 'description:\'MCP 服务器配置的 JSON 数组。每项包含：`name`（字符串，必填，数组内唯一）、`url`（https URL，必填）、`transport`（"http" 或 "sse"，默认 "http"）、`headers`（字符串到字符串映射，可选，与 `oauth` 互斥）、`headersHelper`（本地可执行文件绝对路径，会向 stdout 输出 HTTP 请求头 JSON 对象，用于轮换 bearer；可选，与 `oauth` 互斥；会覆盖合并到 `headers`，冲突时辅助脚本优先）、`headersHelperTtlSec`（正整数，默认 300，在 TTL 内连接时最多重新运行一次）、`oauth`（布尔值或对象，可选）、`toolPolicy`（工具名到 "allow"/"ask"/"blocked"，可选，用于锁定每个工具的批准状态；未设置则由用户控制）。连接由主机侧工具进程发起，不经过虚拟机内允许列表。\'',
         'title:"Organization UUID"': 'title:"组织 UUID"',
         'title:"Credential helper script"': 'title:"凭据辅助脚本"',
         'description:"Absolute path to an executable that prints the inference credential to stdout. When set, the static inferenceGatewayApiKey / inferenceFoundryApiKey is optional."': 'description:"可执行文件的绝对路径，该文件会将推理凭据输出到标准输出。设置后，可不填写静态 inferenceGatewayApiKey / inferenceFoundryApiKey。"',
         'hint:"Absolute path to an executable that prints the credential."': 'hint:"输出凭据的可执行文件绝对路径。"',
-        'body:\'Claude runs the executable with no arguments and reads **stdout** (trimmed). Exit code must be `0`; any output on **stderr** is logged but ignored. **Stdout must be the credential only** — no banners, prompts, or log lines.\\n\\n**Output format** — either:\\n- a single bare token (the API key / bearer token), or\\n- a JSON object `{"token": "...", "headers": {"Name": "Value", ...}}` when per-request headers are needed (gateway provider only; merged over **Gateway extra headers**, helper wins on conflict)\\n\\nResult is cached for the TTL below. On TTL expiry the helper is re-invoked transparently — no user prompt, no relaunch.\\n\\n**Typical use:** a shell script that pulls from Keychain, 1Password CLI, or an internal secret broker. Example:\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\nIf this field is set, static credential fields (API key, bearer token) are ignored. The helper always wins.\'': 'body:\'Claude 会在不带参数的情况下运行该可执行文件，并读取修剪后的 **标准输出**。退出码必须为 `0`；**标准错误** 的任何输出会被记录但忽略。**标准输出必须只包含凭据**，不能有横幅、提示或日志行。\\n\\n**输出格式**二选一：\\n- 单个纯令牌（API key / bearer token），或\\n- 需要按请求附加请求头时，输出 JSON 对象 `{"token": "...", "headers": {"Name": "Value", ...}}`（仅适用于网关提供商；会与**网关额外请求头**合并，冲突时以辅助脚本为准）。\\n\\n结果会按下方 TTL 缓存。TTL 过期后会自动重新调用辅助脚本，无需用户确认，也无需重启。\\n\\n**常见用法：**通过 shell 脚本从钥匙串、1Password CLI 或内部密钥代理中读取凭据。例如：\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\n设置此字段后，静态凭据字段（API key、bearer token）会被忽略，始终以辅助脚本输出为准。\'',
+    'body:\'Claude runs the executable with no arguments and reads **stdout** (trimmed). Exit code must be `0`; any output on **stderr** is logged but ignored. **Stdout must be the credential only** — no banners, prompts, or log lines.\\n\\n**Output format** — either:\\n- a single bare token (the API key / bearer token), or\\n- a JSON object `{"token": "...", "headers": {"Name": "Value", ...}}` when per-request headers are needed (gateway provider only; merged over **Gateway extra headers**, helper wins on conflict)\\n\\nResult is cached for the TTL below. On TTL expiry the helper is re-invoked transparently — no user prompt, no relaunch.\\n\\n**Typical use:** a shell script that pulls from Keychain, 1Password CLI, or an internal secret broker. Example:\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\nIf this field is set, static credential fields (API key, bearer token) are ignored. The helper always wins.\'': 'body:\'Claude 会在不带参数的情况下运行该可执行文件，并读取修剪后的 **标准输出**。退出码必须为 `0`；**标准错误** 的任何输出会被记录但忽略。**标准输出必须只包含凭据**，不能有横幅、提示或日志行。\\n\\n**输出格式**二选一：\\n- 单个纯令牌（API key / bearer token），或\\n- 需要按请求附加请求头时，输出 JSON 对象 `{"token": "...", "headers": {"Name": "Value", ...}}`（仅适用于网关提供商；会与**网关额外请求头**合并，冲突时以辅助脚本为准）。\\n\\n结果会按下方 TTL 缓存。TTL 过期后会自动重新调用辅助脚本，无需用户确认，也无需重启。\\n\\n**常见用法：**通过 shell 脚本从钥匙串、1Password CLI 或内部密钥代理中读取凭据。例如：\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\n设置此字段后，静态凭据字段（API key、bearer token）会被忽略，始终以辅助脚本输出为准。\'',
+        'body:\'Claude runs the executable with no arguments and reads **stdout** (trimmed). Exit code must be `0`; any output on **stderr** is logged but ignored. **Stdout must contain only one of the formats below** (no banners, prompts, or log lines).\\n\\n**Output format** is either:\\n- a single bare token (the API key / bearer token), or\\n- a JSON object `{"token": "...", "headers": {"Name": "Value", ...}}` when per-request headers are needed (merged over **Custom inference headers**, helper wins on conflict)\\n\\nResult is cached for the TTL below. On TTL expiry the helper is re-invoked transparently (no user prompt, no relaunch).\\n\\n**Typical use:** a shell script that pulls from Keychain, 1Password CLI, or an internal secret broker. Example:\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\nIf this field is set, static credential fields (API key, bearer token) are ignored. The helper always wins.\'': 'body:\'Claude 会在不带参数的情况下运行该可执行文件，并读取修剪后的 **标准输出**。退出码必须为 `0`；**标准错误** 的任何输出会被记录但忽略。**标准输出必须只包含下列格式之一**，不能有横幅、提示或日志行。\\n\\n**输出格式**二选一：\\n- 单个纯令牌（API key / bearer token），或\\n- 需要按请求附加请求头时，输出 JSON 对象 `{"token": "...", "headers": {"Name": "Value", ...}}`（会与**自定义推理请求头**合并，冲突时辅助脚本优先）。\\n\\n结果会按下方 TTL 缓存。TTL 过期后会自动重新调用辅助脚本，无需用户确认，也无需重启。\\n\\n**常见用法：**通过 shell 脚本从钥匙串、1Password CLI 或内部密钥代理中读取凭据。例如：\\n\\n`security find-generic-password -s anthropic-api -w`\\n\\n设置此字段后，静态凭据字段（API key、bearer token）会被忽略，始终以辅助脚本输出为准。\'',
         'title:"Credential helper TTL"': 'title:"凭据辅助脚本 TTL"',
         'description:"Helper output is cached for this many seconds. Default 3600. Re-runs at the next session start after expiry."': 'description:"辅助脚本输出缓存的秒数。默认 3600。过期后会在下一次会话开始时重新运行。"',
+        'defaultMessage:"seconds"': 'defaultMessage:"秒"',
+        'defaultMessage:"Helper output is cached for this many seconds. Re-runs at the next session start after expiry."': 'defaultMessage:"辅助脚本输出会缓存指定秒数；过期后会在下一次会话开始时重新运行。"',
         'title:"Allow desktop extensions"': 'title:"允许桌面扩展"',
         'description:"Permit users to install local desktop extensions (.dxt/.mcpb)."': 'description:"允许用户安装本地桌面扩展（.dxt/.mcpb）。"',
         'egressRequirementsLabel:"Desktop extensions (Python runtime)"': 'egressRequirementsLabel:"桌面扩展（Python 运行时）"',
@@ -862,7 +974,7 @@ def patch_hardcoded_frontend_strings(
         'description:`Additional hostnames the Cowork sandbox may reach (web fetch, shell commands, package installs). JSON array; supports *.example.com wildcards. The inference provider host is always allowed. Set to ["*"] to disable VM-level egress filtering entirely. Common hosts to add for dependency installs (pip/npm/apt/cargo/git): ${I.join(", ")}.`': 'description:`Cowork 沙盒可访问的额外主机名（网页抓取、Shell 命令、包安装）。JSON 数组；支持 *.example.com 通配符。推理提供商主机始终允许。设置为 ["*"] 可完全禁用虚拟机级出站过滤。依赖安装（pip/npm/apt/cargo/git）常需添加的主机：${I.join(", ")}。`',
         'egressRequirementsLabel:"Tool egress (VM sandbox)"': 'egressRequirementsLabel:"工具出站（虚拟机沙盒）"',
         'banner:"Prompts, completions, and your data are never sent to Anthropic — telemetry covers crash and usage signals only."': 'banner:"提示词、补全和你的数据绝不会发送给 Anthropic；遥测只包含崩溃和使用信号。"',
-        'group:"OpenTelemetry"': 'group:"OpenTelemetry"',
+        'group:"OpenTelemetry"': 'group:"开放遥测"',
         'group:"Updates"': 'group:"更新"',
         'title:"OpenTelemetry collector endpoint"': 'title:"OpenTelemetry 收集器端点"',
         'title:"OpenTelemetry resource attributes"': 'title:"OpenTelemetry 资源属性"',
@@ -914,8 +1026,49 @@ def patch_hardcoded_frontend_strings(
         'hint:"Built-in tools removed from Cowork."': 'hint:"从 Cowork 中移除的内置工具。"',
         'group:"Extensions"': 'group:"扩展"',
         'group:"MCP servers"': 'group:"MCP 服务器"',
-        'group:"Anthropic telemetry"': 'group:"Anthropic 遥测"',
-        'hint:".dxt and .mcpb installs."': 'hint:".dxt 和 .mcpb 安装。"',
+    'group:"Anthropic telemetry"': 'group:"Anthropic 遥测"',
+    'defaultMessage:"Allow Claude Code tab"': 'defaultMessage:"允许 Claude Code 标签页"',
+    'defaultMessage:"Show the Code tab (terminal-based coding sessions). Sessions run on the host, not inside the VM."': 'defaultMessage:"显示 Code 标签页（基于终端的编码会话）。会话在主机上运行，而不是在虚拟机内运行。"',
+    'defaultMessage:"Allowed egress hosts"': 'defaultMessage:"允许的出站主机"',
+    "defaultMessage:\"Domains Cowork's tools may reach during a turn. Also surfaced under Egress Requirements.\"": 'defaultMessage:"Cowork 工具在一次回合中可访问的域名，也会显示在出站要求中。"',
+    'defaultMessage:"Allowed workspace folders"': 'defaultMessage:"允许的工作区文件夹"',
+    'defaultMessage:"Folders users may attach as a workspace. Leave unset for unrestricted access."': 'defaultMessage:"用户可附加为工作区的文件夹。留空表示不限制访问。"',
+    'defaultMessage:"Disabled built-in tools"': 'defaultMessage:"禁用内置工具"',
+    'defaultMessage:"Built-in tools removed from Cowork."': 'defaultMessage:"从 Cowork 中移除的内置工具。"',
+    'defaultMessage:"Built-in tool policy"': 'defaultMessage:"内置工具策略"',
+    'defaultMessage:"Per-tool approval policy: “ask” requires user approval before each call; “allow” is the default. Use Disabled built-in tools to remove a tool entirely."': 'defaultMessage:"按工具设置审批策略：“ask” 表示每次调用前都需要用户批准；“allow” 为默认值。使用“禁用的内置工具”可完全移除某个工具。"',
+    "defaultMessage:'Per-tool approval policy. \"ask\" requires user approval before each call; \"allow\" is the default. Use Disabled built-in tools to remove a tool entirely.'": "defaultMessage:'按工具设置审批策略。“ask” 表示每次调用前都需要用户批准；“allow” 为默认值。使用“禁用的内置工具”可完全移除某个工具。'",
+    'defaultMessage:"Add policy"': 'defaultMessage:"添加策略"',
+    'defaultMessage:"Disable Claude.ai sign-in"': 'defaultMessage:"禁用 Claude.ai 登录"',
+    'defaultMessage:"Disable claude:// deep-link handling"': 'defaultMessage:"禁用 claude:// 深度链接处理"',
+    'defaultMessage:"Stop external apps and websites from opening Cowork via claude:// links."': 'defaultMessage:"阻止外部应用和网站通过 claude:// 链接打开 Cowork。"',
+    'defaultMessage:"Prompts, completions, and your data are never sent to Anthropic. Telemetry covers crash and usage signals only."': 'defaultMessage:"提示词、补全和你的数据绝不会发送给 Anthropic。遥测仅包含崩溃和使用信号。"',
+    'defaultMessage:"Anthropic telemetry"': 'defaultMessage:"Anthropic 遥测"',
+    'defaultMessage:"Organization UUID"': 'defaultMessage:"组织 UUID"',
+    "defaultMessage:\"Tags telemetry events with your organization's UUID so Anthropic support can find them. Not used for auth.\"": 'defaultMessage:"用你的组织 UUID 标记遥测事件，方便 Anthropic 支持团队定位问题。不会用于认证。"',
+    'defaultMessage:"Block essential telemetry"': 'defaultMessage:"阻止基础遥测"',
+    'defaultMessage:"Crash and performance reports to Anthropic."': 'defaultMessage:"发送给 Anthropic 的崩溃和性能报告。"',
+    'defaultMessage:"Block nonessential telemetry"': 'defaultMessage:"阻止非必要遥测"',
+    'defaultMessage:"Product-usage analytics and diagnostic-report uploads. No message content."': 'defaultMessage:"产品使用分析和诊断报告上传。不包含消息内容。"',
+    'defaultMessage:"Block nonessential services"': 'defaultMessage:"阻止非必要服务"',
+    'defaultMessage:"Favicon fetch and the artifact-preview iframe origin. Artifacts will not render."': 'defaultMessage:"网站图标获取和 Artifact 预览 iframe 来源。Artifact 将无法渲染。"',
+    'defaultMessage:"OpenTelemetry"': 'defaultMessage:"开放遥测"',
+    'defaultMessage:"OpenTelemetry collector endpoint"': 'defaultMessage:"OpenTelemetry 收集器端点"',
+    'defaultMessage:"Where Cowork sends OpenTelemetry logs and metrics. Leave blank to disable."': 'defaultMessage:"Cowork 会将 OpenTelemetry 日志和指标发送到哪里。留空表示禁用。"',
+    'defaultMessage:"Updates"': 'defaultMessage:"更新"',
+    'defaultMessage:"Block auto-updates"': 'defaultMessage:"阻止自动更新"',
+    'defaultMessage:"Stop Cowork from fetching updates. You’ll need to push new versions yourself."': 'defaultMessage:"阻止 Cowork 获取更新。后续新版本需要由你自行推送。"',
+    'defaultMessage:"Security and compatibility fixes will not install automatically. Make sure IT has another distribution path."': 'defaultMessage:"安全和兼容性修复不会自动安装。请确保 IT 有其他分发路径。"',
+    'defaultMessage:"Auto-update enforcement window"': 'defaultMessage:"自动更新强制窗口"',
+    'defaultMessage:"Hours before a downloaded update force-installs. Blank = 72-hour default."': 'defaultMessage:"已下载更新会在多少小时后强制安装。留空则使用默认的 72 小时。"',
+    'defaultMessage:"Max tokens per window"': 'defaultMessage:"每窗口最大令牌数"',
+    'defaultMessage:"Per-user soft cap, counted client-side over the duration below. Not a server-enforced quota."': 'defaultMessage:"按用户设置的软限制，在下方时长范围内由客户端统计。不是服务器强制执行的配额。"',
+    'defaultMessage:"tokens"': 'defaultMessage:"令牌"',
+    'defaultMessage:"Hosts your network firewall must allow, derived from your current settings. This list is read-only and updates as you make changes. Traffic is HTTPS on port 443 unless a custom port is specified (OTLP, gateway, or MCP server URLs)."': 'defaultMessage:"你的网络防火墙必须允许的主机，会根据当前设置生成。此列表为只读，并会随设置变化自动更新。除非配置了自定义端口（OTLP、网关或 MCP 服务器 URL），否则流量均为 443 端口上的 HTTPS。"',
+    'defaultMessage:"Firewall allowlist (.txt)"': 'defaultMessage:"防火墙允许列表（.txt）"',
+    'defaultMessage:"Copy hostnames"': 'defaultMessage:"复制主机名"',
+    'defaultMessage:"Download .txt"': 'defaultMessage:"下载 .txt"',
+    'hint:".dxt and .mcpb installs."': 'hint:".dxt 和 .mcpb 安装。"',
         'hint:"The in-app catalogue of installable extensions. Hide to allow sideload only."': 'hint:"应用内可安装扩展目录。隐藏后仅允许侧载。"',
         'hint:"Local stdio servers added via the Developer settings. Remote servers come from the managed list above, or plugins mounted to a user\'s computer by an organization admin."': 'hint:"通过开发者设置添加的本地 stdio 服务器。远程服务器来自上方托管列表，或来自组织管理员挂载到用户电脑的插件。"',
         'hint:"Org-pushed remote MCP servers. May embed bearer tokens."': 'hint:"组织推送的远程 MCP 服务器。可能嵌入 Bearer 令牌。"',
@@ -1710,10 +1863,18 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
     wmt_effort_source = (
         '{activeMode:ee}=Omt(z,K),te=O?void 0:ee?.label,{toggleConversationSetting:se}=bz({source:"modelSelector"})'
     )
-    wmt_effort_target = (
+    wmt_effort_already_source = (
         '{activeMode:ee}=Omt(z,K),'
         '[cw,Sw]=n.useState(()=>{try{return localStorage.getItem("cowork_effort_level_cn")||"max"}catch{return"max"}}),'
         'Fw=n.useMemo(()=>({current:cw,options:[{value:"low",label:"低"},{value:"medium",label:"中"},{value:"high",label:"高"},{value:"xhigh",label:"超高"},{value:"max",label:"最大"}],'
+        'onSelect:e=>{Sw(e);try{localStorage.setItem("cowork_effort_level_cn",e),window.dispatchEvent(new CustomEvent("cowork-effort-change",{detail:e}))}catch{}}}),[cw]),'
+        'te=O?{low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}[cw]:ee?.label,{toggleConversationSetting:se}=bz({source:"modelSelector"})'
+    )
+    wmt_effort_target = (
+        '{activeMode:ee}=Omt(z,K),'
+        'zhCoworkEffortOptions=[{value:"low",label:"低"},{value:"medium",label:"中"},{value:"high",label:"高"},{value:"xhigh",label:"超高"},{value:"max",label:"最大"}],'
+        '[cw,Sw]=n.useState(()=>{try{return localStorage.getItem("cowork_effort_level_cn")||"max"}catch{return"max"}}),'
+        'Fw=n.useMemo(()=>({current:cw,options:zhCoworkEffortOptions,'
         'onSelect:e=>{Sw(e);try{localStorage.setItem("cowork_effort_level_cn",e),window.dispatchEvent(new CustomEvent("cowork-effort-change",{detail:e}))}catch{}}}),[cw]),'
         'te=O?{low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}[cw]:ee?.label,{toggleConversationSetting:se}=bz({source:"modelSelector"})'
     )
@@ -1724,13 +1885,26 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         'const de=e=>{const zhIsFixed=("opus"===String(e.model).toLowerCase()||"opus[1m]"===String(e.model).toLowerCase()||"kimi-for-coding"===String(e.model).toLowerCase()||/kimi/i.test(String(e.model))&&/k2\\.6/i.test(String(e.model)));'
         'if(e.model===H)return;if(!zhIsFixed&&ne(e.model))return;if(zhIsFixed||ae||!qmt(e.model,!1,!re,T,le)){'
     )
+    wmt_current_source = '$=Uc("sticky_model_selector"),[q,V]=n.useState(null),H=!$&&q?q:z;'
+    wmt_current_target = '$=Uc("sticky_model_selector"),[q,V]=n.useState(null),H=q??z;'
     wmt_state_source = 'Y(e.model)||se("compass_mode",null),$||V(e.model),D(e.model),i?.(e)}'
     wmt_state_target = 'Y(e.model)||se("compass_mode",null),V(e.model),D(e.model),i?.(e)}'
     wmt_render_source = (
         'ue=a.jsxs(a.Fragment,{children:[a.jsx(Hmt,{models:Q,currentModelOption:W,defaultModel:T,opensInNewChat:N,handleModelSelect:de,hasMultiModalContent:l,checkCapabilityConflicts:E,compactMenu:_}),(!O||k)&&a.jsx(Pmt,{currentModel:z,currentMode:K,coworkExtendedThinkingToggle:k}),'
     )
+    wmt_effort_fragment_target = (
+        'O&&a.jsxs(a.Fragment,{children:[a.jsx(Ho,{className:vme}),'
+        'a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:"强度"}),'
+        'Fw.options.map(e=>a.jsx(Nk,{closeOnClick:!1,onClick:()=>Fw.onSelect(e.value),className:fc(xme,"group pr-1 cursor-pointer"),'
+        'children:a.jsxs(a.Fragment,{children:[a.jsx("div",{className:fc("flex-1",_?"text-xs":"text-sm"),children:e.label}),'
+        'Fw.current===e.value&&a.jsx(Re,{className:"text-accent-100 mb-1 mr-1.5",size:16,weight:"bold","aria-hidden":"true"})]})},e.value))]})'
+    )
     wmt_render_target = (
-        'ue=a.jsxs(a.Fragment,{children:[a.jsx(Hmt,{models:Q,currentModelOption:W,defaultModel:T,opensInNewChat:N,handleModelSelect:de,hasMultiModalContent:l,checkCapabilityConflicts:E,compactMenu:_}),O&&a.jsxs(a.Fragment,{children:[a.jsx(Ho,{className:vme}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:"强度"}),a.jsx(_mt,{section:Fw,compactMenu:_})]}),(!O||k)&&a.jsx(Pmt,{currentModel:z,currentMode:K,coworkExtendedThinkingToggle:k}),'
+        'ue=a.jsxs(a.Fragment,{children:[a.jsx(Hmt,{models:Q,currentModelOption:W,defaultModel:T,opensInNewChat:N,handleModelSelect:de,hasMultiModalContent:l,checkCapabilityConflicts:E,compactMenu:_}),'
+        f'{wmt_effort_fragment_target},(!O||k)&&a.jsx(Pmt,{{currentModel:z,currentMode:K,coworkExtendedThinkingToggle:k}}),'
+    )
+    wmt_broken_effort_fragment_source = (
+        'O&&a.jsxs(a.Fragment,{children:[a.jsx(Ho,{className:vme}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:"强度"}),a.jsx(_mt,{section:Fw,compactMenu:_})]})'
     )
 
     for path in sorted(assets_dir.glob("*.js")):
@@ -1742,9 +1916,12 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         for source, target in {
             xae_return_source: xae_return_target,
             wmt_effort_source: wmt_effort_target,
+            wmt_effort_already_source: wmt_effort_target,
             wmt_handler_source: wmt_handler_target,
+            wmt_current_source: wmt_current_target,
             wmt_state_source: wmt_state_target,
             wmt_render_source: wmt_render_target,
+            wmt_broken_effort_fragment_source: wmt_effort_fragment_target,
             **cowork_runtime_replacements,
         }.items():
             occurrences = patched.count(source)
@@ -4373,9 +4550,20 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                     or 'Fw=n.useMemo(()=>({current:cw,options:' in text
                 )
                 and '"cowork"===I?{current:cw' not in text
-                and ('section:Fw' in text or 'section:Fw,compactMenu:j' in text)
                 and 'value:"xhigh",label:"超高"' in text
                 and 'value:"max",label:"最大"' in text
+            ),
+            "cowork.effort_render_inline": (
+                'Wmt=({conversationUuid' not in text
+                or (
+                    'zhCoworkEffortOptions=[{value:"low",label:"低"}' in text
+                    and 'Fw.options.map(e=>a.jsx(Nk' in text
+                    and 'a.jsx(_mt,{section:Fw' not in text
+                )
+            ),
+            "cowork.current_selection_local": (
+                'Wmt=({conversationUuid' not in text
+                or '$=Uc("sticky_model_selector"),[q,V]=n.useState(null),H=q??z' in text
             ),
             "cowork.default_max_effort": (
                 (
