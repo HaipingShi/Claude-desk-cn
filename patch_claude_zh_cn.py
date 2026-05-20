@@ -132,6 +132,7 @@ KNOWN_FRONTEND_I18N_KEYS: dict[str, str] = {
     "NA4SBfPMeA": "第三方推理设置：网关 API 密钥",
     "OX1+jdVwLL": "第三方推理设置：阻止自动更新",
     "PNFwYup600": "第三方推理设置：自动更新分组",
+    "PO+0DdDIId": "查看菜单：后台任务",
     "QhJxtbMJfB": "会话批量菜单：归档",
     "RtLYfLZ2bT": "第三方推理设置：辅助脚本 TTL",
     "SKeCK+7hmh": "Claude Code 设置：本地会话标题",

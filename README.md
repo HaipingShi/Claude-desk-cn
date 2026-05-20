@@ -78,7 +78,7 @@ Logs/command-latest.log
 - Cowork 和 Code 都必须固定显示两个模型入口，并显示五档强度：`低 / 中 / 高 / 超高 / 最大`，默认是 `Opus 4.71M · 最大`。
 - Code 新建会话默认权限模式是 `绕过权限`。如果其他电脑又显示 `接受编辑`，先看 `Logs/latest.json` 里的 `code.permission_default_bypass`。
 - 新版页面若又出现已记录过的英文残留，先看 `Logs/latest.json` 里的 `i18n.known_missing_strings`，它会列出缺失或仍等于英文原文的 i18n key。
-- macOS 原生菜单若又出现英文，例如“查看”菜单里的 `Background tasks`，先看 `Logs/latest.json` 里的 `i18n.localizable_menu_labels`。这类文案来自 `Localizable.strings`，不在前端 JSON 里。
+- macOS 或前端菜单若又出现英文，例如“查看”菜单里的 `Background tasks`，先看 `Logs/latest.json` 里的 `i18n.known_missing_strings` 和 `i18n.localizable_menu_labels`。当前版本这个菜单项来自前端 i18n key `PO+0DdDIId`，同时保留 `Localizable.strings` 兜底。
 - 开启开发者模式后，如果开发者菜单又出现英文，先看 `Logs/latest.json` 里的 `i18n.developer_menu_labels`。
 - “配置第三方推理”窗口如果又出现英文，先看 `Logs/latest.json` 里的 `i18n.custom3p_setup_labels`。
 - 复制到其他电脑时，推荐复制本项目并在目标电脑重新运行 `install.command`，不要直接复制已经补丁过的 `/Applications/Claude.app`。
