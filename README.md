@@ -77,13 +77,13 @@ Logs/command-latest.log
 - `Kimi-k2.6` 是真实入口，优先使用网关返回的真实 Kimi id，找不到时兜底为 `kimi-for-coding`。
 - Cowork 和 Code 都必须固定显示两个模型入口，并显示五档强度：`低 / 中 / 高 / 超高 / 最大`，默认是 `Opus 4.71M · 最大`。
 - Code 新建会话默认权限模式是 `绕过权限`。如果其他电脑又显示 `接受编辑`，先看 `Logs/latest.json` 里的 `code.permission_default_bypass`。
-- 新版页面若又出现已记录过的英文残留，先看 `Logs/latest.json` 里的 `i18n.known_missing_strings`，它会列出缺失或仍等于英文原文的 i18n key。
+- 新版页面若又出现已记录过的英文残留，先看 `Logs/latest.json` 里的 `i18n.known_missing_strings` 和 `i18n.recent_hardcoded_frontend_strings`。前者检查资源 key，后者专门检查新版 bundle 里容易变成硬编码的漏项，例如 provider 黄色提示、Cowork 强度说明、实时工件、定时任务、项目和插件页面。
 - macOS 或前端菜单若又出现英文，例如“查看”菜单里的 `Background tasks`，先看 `Logs/latest.json` 里的 `i18n.known_missing_strings` 和 `i18n.localizable_menu_labels`。当前版本这个菜单项来自前端 i18n key `PO+0DdDIId`，同时保留 `Localizable.strings` 兜底。
 - 开启开发者模式后，如果开发者菜单又出现英文，先看 `Logs/latest.json` 里的 `i18n.developer_menu_labels`。
-- “配置第三方推理”窗口如果又出现英文，先看 `Logs/latest.json` 里的 `i18n.custom3p_setup_labels`。
+- “配置第三方推理”窗口如果又出现英文，先看 `Logs/latest.json` 里的 `i18n.custom3p_setup_labels` 和 `i18n.recent_hardcoded_frontend_strings`。
 - 复制到其他电脑时，推荐复制本项目并在目标电脑重新运行 `install.command`，不要直接复制已经补丁过的 `/Applications/Claude.app`。
 - Claude Desktop 每次更新后都要重新运行补丁；如果新版 bundle 结构变化，安装会因 invariant 失败而中止，不会覆盖成半残 app。
-- 已适配 Claude Desktop `1.6608.2` 与 `1.7196.0` 的共享模型选择器和第三方模型校验开关；后续版本如再次变动，优先看 `Logs/latest.json` 的失败项。
+- 已适配 Claude Desktop `1.6608.2`、`1.7196.0`、`1.8089+` 与 `1.8555.0` 的共享模型选择器、Code/Cowork 强度菜单、默认绕过权限、第三方模型校验开关和 provider setup 黄色横幅；后续版本如再次变动，优先看 `Logs/latest.json` 的失败项。
 - `api.kimi.com` 健康横幅补丁只隐藏旧健康检查误报，不保证第三方网关真实请求一定成功；真实请求仍由网关配置、网络和上游模型决定。
 - 如果 Cowork 能发消息但 Code 报 `401 API Key invalid`，只运行 `repair_code_runtime.command`。这类问题通常不是前端菜单补丁失效，而是 Code CLI 使用的 `~/.claude/settings.json > env` 没有同步到当前第三方推理配置，或者旧 Code 会话继续用官方 `default` / `claude-sonnet-*` / `claude-opus-*` 模型启动。日志里的 `runtime.claude_code_gateway_env` 会检查 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY` 是否与当前网关配置一致，并记录当前是 `static_key`、`credential_helper` 还是 `sso`，日志不会记录密钥。同步前会写 `runtime.shared_settings_backup_path`，同步后会写 `runtime.shared_settings_merge_safe`，确认没有删掉 CLI/插件已有配置。
 - `install.command` 和 `repair_code_runtime.command` 都会迁移已保存 Code 会话里的旧模型字段。迁移范围不只包括 `opus` / `opus[1m]`，也包括 `default`、`claude-sonnet-*`、`claude-opus-*`、`anthropic/*` 等会绕开第三方 provider 默认模型的旧值。
