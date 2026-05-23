@@ -1949,23 +1949,37 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         'const je=e=>{const zhFixed=/^(opus|opus\\[1m\\]|kimi-for-coding)$/i.test(String(e.model??""))||/kimi/i.test(String(e.model??""))&&/k2\\.6/i.test(String(e.model??""));'
         'if(e.model===te)return;if(!zhFixed&&be(e.model))return;if(zhFixed||ye||!Cut(e.model,!1,!ve,O,_e)){'
     )
+    selector_handler_18555_source = (
+        'const je=e=>{if(e.model===te)return;if(be(e.model))return;if(ye||!but(e.model,!1,!ve,O,_e)){'
+    )
+    selector_handler_18555_target = (
+        'const je=e=>{const zhFixed=/^(opus|opus\\[1m\\]|kimi-for-coding)$/i.test(String(e.model??""))||/kimi/i.test(String(e.model??""))&&/k2\\.6/i.test(String(e.model??""));'
+        'if(e.model===te)return;if(!zhFixed&&be(e.model))return;if(zhFixed||ye||!but(e.model,!1,!ve,O,_e)){'
+    )
     shared_18555_replacements = {
         qte_return_source: qte_return_target,
         aut_effort_source: aut_effort_target,
         'Y=!W&&G?G:H;': 'Y=G??H;',
         'fe=he&&ue.length>0&&!P&&!me': 'fe=he&&ue.length>0&&!me',
         'ge=P?void 0:pe?.name??de?.label': 'ge=pe?.name??de?.label',
+        '!P&&a.jsx(out,{currentModel:te,conversationUuid:e,reserveLeadingColumn:Z,thinkingMenu:fe?{currentModel:te,currentMode:ne,conversationUuid:e,coworkExtendedThinkingToggle:k}:void 0})': (
+            'a.jsx(out,{currentModel:te,conversationUuid:e,reserveLeadingColumn:Z,thinkingMenu:fe?{currentModel:te,currentMode:ne,conversationUuid:e,coworkExtendedThinkingToggle:k}:void 0})'
+        ),
         '!P&&a.jsx(rut,{currentModel:te,conversationUuid:e,reserveLeadingColumn:Z,thinkingMenu:fe?{currentModel:te,currentMode:ne,conversationUuid:e,coworkExtendedThinkingToggle:k}:void 0})': (
             'a.jsx(rut,{currentModel:te,conversationUuid:e,reserveLeadingColumn:Z,thinkingMenu:fe?{currentModel:te,currentMode:ne,conversationUuid:e,coworkExtendedThinkingToggle:k}:void 0})'
         ),
         selector_handler_source: selector_handler_target,
+        selector_handler_18555_source: selector_handler_18555_target,
+        're(e.model)||Ce("compass_mode",null),W||K(e.model),Ce("paprika_mode",n),he&&xe({thinking_mode:null,effort_level:null}),F(e.model),o?.(e)}': (
+            're(e.model)||Ce("compass_mode",null),K(e.model),Ce("paprika_mode",n),he&&xe({thinking_mode:null,effort_level:null}),F(e.model),o?.(e)}'
+        ),
         'Y(e.model)||Ce("compass_mode",null),W||K(e.model),Ce("paprika_mode",n),he&&xe({thinking_mode:null,effort_level:null}),F(e.model),o?.(e)}': (
             'Y(e.model)||Ce("compass_mode",null),K(e.model),Ce("paprika_mode",n),he&&xe({thinking_mode:null,effort_level:null}),F(e.model),o?.(e)}'
         ),
     }
     for path in sorted(assets_dir.glob("*.js")):
         text = path.read_text(encoding="utf-8")
-        if 'Qte=(e="ccr_model"' not in text or 'function Ise({conversationUuid' not in text:
+        if 'Qte=(e="ccr_model"' not in text:
             continue
         patched = text
         count = 0
