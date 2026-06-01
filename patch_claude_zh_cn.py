@@ -36,6 +36,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from patches.cleanup import cleanup_stale_display_names
 from patches.constants import (
     OPUS_DISPLAY_NAME,
     SAFE_OPUS_MODEL_ID,
@@ -2567,34 +2568,11 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
             patched_files += 1
             patched_strings += count
 
-    # 兜底：清理旧版补丁残留的显示版本号（新版 source 不匹配时旧 target 会残留）
-    stale_opus_cleanup = {
-        'name:"Opus 4.71M"': 'name:"Opus 4.8"',
-        'label_override:"Opus 4.71M"': 'label_override:"Opus 4.8"',
-        'name:"Opus 4.7 1M"': 'name:"Opus 4.8"',
-        'label_override:"Opus 4.7 1M"': 'label_override:"Opus 4.8"',
-        'return"Opus 4.71M"': 'return"Opus 4.8"',
-        'return"Opus 4.7 1M"': 'return"Opus 4.8"',
-        '"Opus 4.71M",inactive': '"Opus 4.8",inactive',
-        '"Opus 4.7 1M",inactive': '"Opus 4.8",inactive',
-        # patch_epitaxy_model_menu 旧版 target 残留（code_18555_current_target / code_18555_items_target）
-        '("opus"===K||"opus[1m]"===K?"Opus 4.71M"': '("opus"===K||"opus[1m]"===K?"Opus 4.8"',
-        '("opus"===K||"opus[1m]"===K)?"Opus 4.71M"': '("opus"===K||"opus[1m]"===K)?"Opus 4.8"',
-        '{label:"Opus 4.71M",checked:"opus"===K||"opus[1m]"===K': '{label:"Opus 4.8",checked:"opus"===K||"opus[1m]"===K',
-    }
-    for path in sorted(assets_dir.glob("*.js")):
-        text = path.read_text(encoding="utf-8")
-        patched = text
-        count = 0
-        for source, target in stale_opus_cleanup.items():
-            occurrences = patched.count(source)
-            if occurrences:
-                patched = patched.replace(source, target)
-                count += occurrences
-        if patched != text:
-            path.write_text(patched, encoding="utf-8")
-            patched_files += 1
-            patched_strings += count
+    # 兜底：清理旧版补丁残留的显示版本号
+    cf, cs = cleanup_stale_display_names(assets_dir)
+    if cf:
+        patched_files += cf
+        patched_strings += cs
 
     return patched_files, patched_strings
 
@@ -3158,6 +3136,12 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
             path.write_text(patched, encoding="utf-8")
             patched_files += 1
             patched_strings += count
+
+    # 兜底：清理旧版补丁残留的显示版本号
+    cf, cs = cleanup_stale_display_names(assets_dir)
+    if cf:
+        patched_files += cf
+        patched_strings += cs
 
     return patched_files, patched_strings
 
