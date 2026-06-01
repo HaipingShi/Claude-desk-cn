@@ -6,18 +6,19 @@ reports any stale display names still present.
 """
 
 from pathlib import Path
+from typing import Any
 
 from patches.constants import STALE_OPUS_VARIANTS
 
 
-def scan_for_stale_display_names(app: Path) -> list[dict[str, str]]:
+def scan_for_stale_display_names(app: Path) -> list[dict[str, Any]]:
     """Scan all *.js files under ``app`` for stale display names.
 
     Returns a list of findings, each dict with keys:
     - file: relative path to the js file
     - matches: list of stale display names found in that file
     """
-    findings: list[dict[str, str]] = []
+    findings: list[dict[str, Any]] = []
 
     for path in app.rglob("*.js"):
         try:
