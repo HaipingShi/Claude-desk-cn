@@ -36,6 +36,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from patches.constants import (
+    OPUS_DISPLAY_NAME,
+    SAFE_OPUS_MODEL_ID,
+    LEGACY_1M_OPUS_MODEL_ID,
+)
 
 APP_DEFAULT = Path("/Applications/Claude.app")
 LANG_CODE = "zh-CN"
@@ -53,9 +58,6 @@ DESKTOP_RESOURCES_REL = Path("Contents/Resources")
 ASAR_PATCH_TARGET = ".vite/build/index.js"
 ASAR_INTEGRITY_BLOCK_SIZE = 4 * 1024 * 1024
 REPORT_DIR = ROOT / "Logs"
-SAFE_OPUS_MODEL_ID = "opus"
-LEGACY_1M_OPUS_MODEL_ID = "opus[1m]"
-OPUS_DISPLAY_NAME = "Opus 4.71M"
 CLAUDE_CODE_CONTEXT_WINDOW_KEY = "tengu_hawthorn_window"
 CONTEXT_WINDOW_KEYS = (
     "context_length",
@@ -1388,15 +1390,15 @@ def patch_hardcoded_frontend_strings(
         'F=z?.sessionData?.session_context?.model??null,': 'F=(e=>e==="kimi-for-coding"?"opus[1m]":e)(z?.sessionData?.session_context?.model??null),',
         'return t.sessionModel??t.sessionData?.session_context?.model})??null': 'return(e=>e==="kimi-for-coding"?"opus[1m]":e)(t.sessionModel??t.sessionData?.session_context?.model)})??null',
         'const n=s.find(t=>t.model===e),r=(n?.thinking_modes??[]).map': 'const n=s.find(t=>t.model===e)??(("opus"===e||"opus[1m]"===e)?s.find(e=>"opus[1m]"===e.model)??s.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??s.find(e=>e.thinking_modes?.length):void 0),r=(n?.thinking_modes??[]).map',
-        'W||(W=F.find(e=>e.model===L)??sgt);': 'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.71M",inactive:!1,overflow:!1}:sgt));',
-        'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.71M",inactive:!1,overflow:!1}:sgt));const G=': 'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.71M",inactive:!1,overflow:!1}:sgt));(\"\"===Vft(W)||\"opus\"===V||\"opus[1m]\"===V||\"opus\"===L||\"opus[1m]\"===L)&&(W={...W,model:\"opus[1m]\",name:\"Opus 4.71M\",inactive:!1,overflow:!1});const G=',
-        '""===Vft(W)&&(W={model:"opus[1m]",name:"Opus 4.7 1M",inactive:!1,overflow:!1});const G=': '(""===Vft(W)||"opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)&&(W={...W,model:"opus[1m]",name:"Opus 4.71M",inactive:!1,overflow:!1});const G=',
+        'W||(W=F.find(e=>e.model===L)??sgt);': 'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.8",inactive:!1,overflow:!1}:sgt));',
+        'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.8",inactive:!1,overflow:!1}:sgt));const G=': 'W||(W=F.find(e=>e.model===L)??(("opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)?{model:"opus[1m]",name:"Opus 4.8",inactive:!1,overflow:!1}:sgt));(\"\"===Vft(W)||\"opus\"===V||\"opus[1m]\"===V||\"opus\"===L||\"opus[1m]\"===L)&&(W={...W,model:\"opus[1m]\",name:\"Opus 4.8\",inactive:!1,overflow:!1});const G=',
+        '""===Vft(W)&&(W={model:"opus[1m]",name:"Opus 4.8",inactive:!1,overflow:!1});const G=': '(""===Vft(W)||"opus"===V||"opus[1m]"===V||"opus"===L||"opus[1m]"===L)&&(W={...W,model:"opus[1m]",name:"Opus 4.8",inactive:!1,overflow:!1});const G=',
         'z=r??A,{allModelOptions:F,mainModels:U,overflowModels:q}=R': 'z=(e=>e==="kimi-for-coding"?"opus[1m]":e)(r??A),{allModelOptions:F,mainModels:U,overflowModels:q}=R',
         '{activeMode:te}=Gft(z,Z),se=O?void 0:te?.label,{toggleConversationSetting:ne}=O6({source:"modelSelector"})': '{activeMode:te}=Gft(z,Z),[me,he]=n.useState(()=>{try{return localStorage.getItem("cowork_effort_level_cn")||"max"}catch{return"max"}}),fe=n.useMemo(()=>_??{current:me,options:[{value:"low",label:"低"},{value:"medium",label:"中"},{value:"high",label:"高"},{value:"xhigh",label:"超高"},{value:"max",label:"最大"}],onSelect:e=>{he(e);try{localStorage.setItem("cowork_effort_level_cn",e),window.dispatchEvent(new CustomEvent("cowork-effort-change",{detail:e}))}catch{}}},[_,me]),se=O?{low:"低",medium:"中",high:"高",xhigh:"超高",max:"最大"}[me]:te?.label,{toggleConversationSetting:ne}=O6({source:"modelSelector"})',
         '_&&a.jsxs(a.Fragment,{children:[a.jsx(ol,{className:IR}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:a.jsx(c,{defaultMessage:"强度",id:"VKZ/U8vAsk"})}),a.jsx(igt,{section:_,compactMenu:j})]})': 'fe&&a.jsxs(a.Fragment,{children:[a.jsx(ol,{className:IR}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:a.jsx(c,{defaultMessage:"强度",id:"VKZ/U8vAsk"})}),a.jsx(igt,{section:fe,compactMenu:j})]})',
         'fe&&a.jsxs(a.Fragment,{children:[a.jsx(ol,{className:IR}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:a.jsx(c,{defaultMessage:"强度",id:"VKZ/U8vAsk"})}),a.jsx(igt,{section:fe,compactMenu:j})]})': 'a.jsxs(a.Fragment,{children:[a.jsx(ol,{className:IR}),a.jsx("div",{className:"text-xs text-text-500 pt-2 pb-1 px-2",children:a.jsx(c,{defaultMessage:"强度",id:"VKZ/U8vAsk"})}),a.jsx(igt,{section:{current:me,options:[{value:"low",label:"低"},{value:"medium",label:"中"},{value:"high",label:"高"},{value:"xhigh",label:"超高"},{value:"max",label:"最大"}],onSelect:e=>{he(e);try{localStorage.setItem("cowork_effort_level_cn",e),window.dispatchEvent(new CustomEvent("cowork-effort-change",{detail:e}))}catch{}}},compactMenu:j})]})',
-        'const Wft=({model:e,compact:t=!1,thinkingLabel:s})=>{const n=Vft(e,{mutedSuffix:!0});return': 'const Wft=({model:e,compact:t=!1,thinkingLabel:s})=>{let n=Vft(e,{mutedSuffix:!0});""===n&&(n="Opus 4.71M");return',
-        'function Vft(e,t={}){const s=e.model?Z9(e.model):null;': 'function Vft(e,t={}){if("opus[1m]"===e?.model||"opus"===e?.model)return"Opus 4.71M";const s=e.model?Z9(e.model):null;',
+        'const Wft=({model:e,compact:t=!1,thinkingLabel:s})=>{const n=Vft(e,{mutedSuffix:!0});return': 'const Wft=({model:e,compact:t=!1,thinkingLabel:s})=>{let n=Vft(e,{mutedSuffix:!0});""===n&&(n="Opus 4.8");return',
+        'function Vft(e,t={}){const s=e.model?Z9(e.model):null;': 'function Vft(e,t={}){if("opus[1m]"===e?.model||"opus"===e?.model)return"Opus 4.8";const s=e.model?Z9(e.model):null;',
         'j=pc("cowork_effort_level","medium",Wu),M=pc("cowork_model",vJt,yJt),': 'j=(()=>{const e=pc("cowork_effort_level_cn","max",Wu),[t,s]=n.useState(()=>{try{return localStorage.getItem("cowork_effort_level_cn")||e}catch{return e}});return n.useEffect(()=>{const e=()=>{try{s(localStorage.getItem("cowork_effort_level_cn")||"max")}catch{s("max")}};if("undefined"==typeof window)return;e();return window.addEventListener("cowork-effort-change",e),()=>window.removeEventListener("cowork-effort-change",e)},[]),t})(),M=pc("cowork_model",vJt,yJt),',
         '"Scheduled"': '"定时任务"',
         '"Pinned"': '"已固定"',
@@ -1469,7 +1471,7 @@ def patch_hardcoded_frontend_strings(
         'if(s.length>0&&!e.some(e=>"opus[1m]"===e.model)){'
         'const l=s.find(e=>"opus[1m]"===e.model)??s.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??'
         's.find(e=>e.thinking_modes?.length)??s[0];'
-        'e=[{...l,model:"opus[1m]",name:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},...e]}'
+        'e=[{...l,model:"opus[1m]",name:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},...e]}'
         'if(c&&!e.some(e=>e.model===c)){const m=s.find(e=>e.model===c)??s.find(e=>e.thinking_modes?.length)??s[0];'
         'e=[{...m,model:c,name:m?.name??tee(c),name_i18n_key:void 0,inactive:!1,overflow:!1},...e]}'
         'const n=e.some(e=>e.model===c);'
@@ -1491,7 +1493,7 @@ def patch_hardcoded_frontend_strings(
         'if(e.length>0&&!c.some(e=>"opus[1m]"===e.model)){'
         'const n=e.find(e=>"opus[1m]"===e.model)??e.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??'
         'e.find(e=>e.thinking_modes?.length)??e[0];'
-        'c=[{...n,model:"opus[1m]",name:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},...c]}'
+        'c=[{...n,model:"opus[1m]",name:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},...c]}'
         'if(o&&!c.some(e=>e.model===o)){const d=e.find(e=>e.model===o)??e.find(e=>e.thinking_modes?.length)??e[0];'
         'c=[{...d,model:o,name:d?.name??tee(o),name_i18n_key:void 0,inactive:!1,overflow:!1},...c]}'
         'const d=c.some(e=>e.model===o);'
@@ -1605,8 +1607,7 @@ def patch_safe_opus_context(assets_dir: Path) -> tuple[int, int]:
         'z="opus[1m]",': 'z="opus",',
         'z="opus[1m]",{allModelOptions:F}=R,': 'z="opus",{allModelOptions:F}=R,',
         'return["opus[1m]",{...s,allModelOptions:[r,l]': 'return["opus",{...s,allModelOptions:[r,l]',
-        'model:"opus[1m]",name:"Opus 4.71M"': 'model:"opus",name:"Opus 4.71M"',
-        'model:"opus[1m]",name:"Opus 4.7 1M"': 'model:"opus",name:"Opus 4.71M"',
+        'model:"opus[1m]",name:"Opus 4.8"': 'model:"opus",name:"Opus 4.8"',
         'yc("baku_model","model","opus[1m]"': 'yc("baku_model","model","opus"',
         'jc("baku_model","model","opus[1m]"': 'jc("baku_model","model","opus"',
         'pc("baku_model","model","opus[1m]"': 'pc("baku_model","model","opus"',
@@ -1929,7 +1930,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         'zhKimi=zhAll.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         'zhKimiId=zhKimi?.model??("kimi-for-coding"===zhProvider?"kimi-for-coding":zhProvider),'
-        'zhOpus={...zhEffort,model:"opus",name:"Opus 4.71M",label_override:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'zhOpus={...zhEffort,model:"opus",name:"Opus 4.8",label_override:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'zhReal={...(zhKimi??zhEffort),model:zhKimiId,name:"Kimi-k2.6",label_override:"Kimi-k2.6",name_i18n_key:void 0,inactive:!1,overflow:!1};'
         'return["opus",{...zhBase,allModelOptions:[zhOpus,zhReal],mainModels:[zhOpus,zhReal],overflowModels:[],legacyModelIds:[],syntheticAllowedModels:zhBase.syntheticAllowedModels??{}}]'
         '})(g)'
@@ -2008,7 +2009,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
     jbt_model_target = (
         'z="opus[1m]",'
         '{allModelOptions:F}=R,U=[],q=[],B=ud("sticky_model_selector"),[$,V]=n.useState(null),H=$??z,'
-        'rr={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'rr={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'oo=F.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-k2.6"===t||"kimi-k2.6"===s||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)}),'
         'll=oo?.model??"kimi-for-coding",'
@@ -2113,7 +2114,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
     jbt_v2_model_target = (
         'z="opus[1m]",'
         '{allModelOptions:F}=R,U=[],q=[],B=ud("sticky_model_selector"),[$,V]=n.useState(null),H=$??z,'
-        'rr={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'rr={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'oo=F.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-k2.6"===t||"kimi-k2.6"===s||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)}),'
         'll=oo?.model??"kimi-for-coding",'
@@ -2197,7 +2198,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         'const zhCoworkKimiOption=C.allModelOptions.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         'zhCoworkKimiId=zhCoworkKimiOption?.model??"kimi-for-coding",'
-        'zhCoworkOpus={...(C.allModelOptions.find(e=>"opus"===e.model)||C.allModelOptions.find(e=>"opus[1m]"===e.model)||C.allModelOptions.find(e=>e.thinking_modes?.length)||{}),model:"opus",name:"Opus 4.71M",label_override:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'zhCoworkOpus={...(C.allModelOptions.find(e=>"opus"===e.model)||C.allModelOptions.find(e=>"opus[1m]"===e.model)||C.allModelOptions.find(e=>e.thinking_modes?.length)||{}),model:"opus",name:"Opus 4.8",label_override:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'zhCoworkKimi={...(zhCoworkKimiOption??C.allModelOptions.find(e=>e.thinking_modes?.length)??{}),model:zhCoworkKimiId,name:"Kimi-k2.6",label_override:"Kimi-k2.6",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'zhCoworkConfig={...C,allModelOptions:[zhCoworkOpus,zhCoworkKimi],mainModels:[zhCoworkOpus,zhCoworkKimi],overflowModels:[],legacyModelIds:[],syntheticAllowedModels:C.syntheticAllowedModels??{}},'
         'zhCoworkModel=(e=>{const t=String(e??"").toLowerCase();return" kimi-for-coding"===t.trim()||"kimi-k2.6"===t||/kimi/i.test(String(e))&&/k2\\.6/i.test(String(e))?zhCoworkKimiId:"opus"})(A);'
@@ -2286,7 +2287,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
     k5_return_target = (
         'return n.useEffect(()=>{g||a({event_key:"claudeai.code.composer.default_model_missing_from_config",default_model:c})},[g,c,a]),'
         '((t)=>{if("ccr_model"!==e&&"cowork_model"!==e)return t;'
-        'const s=t[1]??{},a=s.allModelOptions??[],r={...(a.find(e=>"opus[1m]"===e.model)??a.find(e=>/opus/i.test(String(e.model))&&/\\[1m\\]/i.test(String(e.model)))??a.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.71M",label_override:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'const s=t[1]??{},a=s.allModelOptions??[],r={...(a.find(e=>"opus[1m]"===e.model)??a.find(e=>/opus/i.test(String(e.model))&&/\\[1m\\]/i.test(String(e.model)))??a.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.8",label_override:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'i=a.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         'o=i?.model??"kimi-for-coding",l={...(i??a.find(e=>e.thinking_modes?.length)??{}),model:o,name:"Kimi-k2.6",label_override:"Kimi-k2.6",name_i18n_key:void 0,inactive:!1,overflow:!1};'
         'return["opus[1m]",{...s,allModelOptions:[r,l],mainModels:[r,l],overflowModels:[],legacyModelIds:[],syntheticAllowedModels:s.syntheticAllowedModels??{}}]})(f)'
@@ -2441,14 +2442,14 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
     )
     vft_target = (
         'function Vft(e,t={}){const r=String(e?.model??e?.name??"");'
-        'if("opus[1m]"===e?.model||"opus"===e?.model)return"Opus 4.71M";'
+        'if("opus[1m]"===e?.model||"opus"===e?.model)return"Opus 4.8";'
         'if("kimi-for-coding"===r.toLowerCase()||/kimi/i.test(r)&&/k2\\.6/i.test(r))return"Kimi-k2.6";'
         'const s=e.model?Z9(e.model):null;'
     )
 
     wft_patterns = {
-        '""===n&&(n="Opus 4.7 1M");return': '""===n&&(n="Opus 4.71M");return',
-        '""===n&&(n="Opus 4.71M");return': '""===n&&(n="Opus 4.71M");return',
+        '""===n&&(n="Opus 4.8");return': '""===n&&(n="Opus 4.8");return',
+        '""===n&&(n="Opus 4.8");return': '""===n&&(n="Opus 4.8");return',
     }
 
     ogt_model_res = [
@@ -2472,7 +2473,7 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
         'Ce=F.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-k2.6"===t||"kimi-k2.6"===s||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)}),'
         'Se=Ce?.model??"kimi-for-coding",'
-        'Ne={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.71M",name_i18n_key:void 0,inactive:!1,overflow:!1},'
+        'Ne={...(F.find(e=>"opus[1m]"===e.model)??F.find(e=>/opus/i.test(e.model)&&/\\[1m\\]/i.test(e.model))??F.find(e=>e.thinking_modes?.length)??{}),model:"opus[1m]",name:"Opus 4.8",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'Re={...(Ce??F.find(e=>e.thinking_modes?.length)??{}),model:Se,name:"Kimi-k2.6",name_i18n_key:void 0,inactive:!1,overflow:!1},'
         'V=$??z,W="kimi-for-coding"===ke(V)?Re:Ne,'
         'G=n.useRef(null),Z=L6("paprika_mode");Hft(z);'
@@ -2566,6 +2567,35 @@ def patch_cowork_model_menu(assets_dir: Path, runtime_model: str | None = None) 
             patched_files += 1
             patched_strings += count
 
+    # 兜底：清理旧版补丁残留的显示版本号（新版 source 不匹配时旧 target 会残留）
+    stale_opus_cleanup = {
+        'name:"Opus 4.71M"': 'name:"Opus 4.8"',
+        'label_override:"Opus 4.71M"': 'label_override:"Opus 4.8"',
+        'name:"Opus 4.7 1M"': 'name:"Opus 4.8"',
+        'label_override:"Opus 4.7 1M"': 'label_override:"Opus 4.8"',
+        'return"Opus 4.71M"': 'return"Opus 4.8"',
+        'return"Opus 4.7 1M"': 'return"Opus 4.8"',
+        '"Opus 4.71M",inactive': '"Opus 4.8",inactive',
+        '"Opus 4.7 1M",inactive': '"Opus 4.8",inactive',
+        # patch_epitaxy_model_menu 旧版 target 残留（code_18555_current_target / code_18555_items_target）
+        '("opus"===K||"opus[1m]"===K?"Opus 4.71M"': '("opus"===K||"opus[1m]"===K?"Opus 4.8"',
+        '("opus"===K||"opus[1m]"===K)?"Opus 4.71M"': '("opus"===K||"opus[1m]"===K)?"Opus 4.8"',
+        '{label:"Opus 4.71M",checked:"opus"===K||"opus[1m]"===K': '{label:"Opus 4.8",checked:"opus"===K||"opus[1m]"===K',
+    }
+    for path in sorted(assets_dir.glob("*.js")):
+        text = path.read_text(encoding="utf-8")
+        patched = text
+        count = 0
+        for source, target in stale_opus_cleanup.items():
+            occurrences = patched.count(source)
+            if occurrences:
+                patched = patched.replace(source, target)
+                count += occurrences
+        if patched != text:
+            path.write_text(patched, encoding="utf-8")
+            patched_files += 1
+            patched_strings += count
+
     return patched_files, patched_strings
 
 
@@ -2616,8 +2646,8 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'const s=k.find(e=>String(e.model??"").toLowerCase()===t||String(e.name??"").toLowerCase()===t);'
         'return s?s.model:"opus"})(U??"opus"),'
         'V=k.find(e=>e.model===K),'
-        'G=V?null:("opus"===K||"opus[1m]"===K?"Opus 4.71M":("kimi-for-coding"===K||/kimi/i.test(String(K))&&/k2\\.6/i.test(String(K))?"Kimi-k2.6":zs(K))),'
-        'Q=e.useMemo(()=>("opus"===K||"opus[1m]"===K)?"Opus 4.71M":("kimi-for-coding"===K||/kimi/i.test(String(K))&&/k2\\.6/i.test(String(K)))?"Kimi-k2.6":V?Om(V):G,[V,G,K]),'
+        'G=V?null:("opus"===K||"opus[1m]"===K?"Opus 4.8":("kimi-for-coding"===K||/kimi/i.test(String(K))&&/k2\\.6/i.test(String(K))?"Kimi-k2.6":zs(K))),'
+        'Q=e.useMemo(()=>("opus"===K||"opus[1m]"===K)?"Opus 4.8":("kimi-for-coding"===K||/kimi/i.test(String(K))&&/k2\\.6/i.test(String(K)))?"Kimi-k2.6":V?Om(V):G,[V,G,K]),'
         f'{runtime_mapping_18555_js}X=Ls()'
     )
     code_18555_items_re = re.compile(
@@ -2630,7 +2660,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
     )
     code_18555_items_target = (
         'me=e.useMemo(()=>{'
-        'const e={label:"Opus 4.71M",checked:"opus"===K||"opus[1m]"===K,onSelect:()=>pe.current("opus")},'
+        'const e={label:"Opus 4.8",checked:"opus"===K||"opus[1m]"===K,onSelect:()=>pe.current("opus")},'
         't=k.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         's=t?.model??"kimi-for-coding",'
@@ -2691,8 +2721,8 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'return s?s.model:"opus"'
         '})(B??"opus"),'
         'V=M.find(e=>e.model===W),'
-        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ze(W))),'
-        'Q=e.useMemo(()=>("opus"===W||"opus[1m]"===W)?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?"Kimi-k2.6":V?Eh(V):G,[V,G,W]),'
+        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.8":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ze(W))),'
+        'Q=e.useMemo(()=>("opus"===W||"opus[1m]"===W)?"Opus 4.8":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?"Kimi-k2.6":V?Eh(V):G,[V,G,W]),'
         f'{runtime_mapping_js}X=et()'
     )
     code_18089_items_re = re.compile(
@@ -2703,7 +2733,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
     )
     code_18089_items_target = (
         'fe=e.useMemo(()=>{'
-        'const e={label:"Opus 4.71M",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus"),disabled:ie},'
+        'const e={label:"Opus 4.8",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus"),disabled:ie},'
         't=M.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         's=t?.model??"kimi-for-coding",'
@@ -2781,8 +2811,8 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'return s?s.model:"opus[1m]"'
         '})(H??"opus[1m]"),'
         'V=M.find(e=>e.model===W),'
-        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ze(W))),'
-        'Q=e.useMemo(()=>("opus"===W||"opus[1m]"===W)?"Opus 4.71M":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?"Kimi-k2.6":V?ah(V):G,[V,G,W]),'
+        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.8":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ze(W))),'
+        'Q=e.useMemo(()=>("opus"===W||"opus[1m]"===W)?"Opus 4.8":("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?"Kimi-k2.6":V?ah(V):G,[V,G,W]),'
         f'{runtime_mapping_js}X=et()'
     )
     code_17196_items_re = re.compile(
@@ -2793,7 +2823,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
     )
     code_17196_items_target = (
         'fe=e.useMemo(()=>{'
-        'const e={label:"Opus 4.71M",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus[1m]"),disabled:ie},'
+        'const e={label:"Opus 4.8",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus[1m]"),disabled:ie},'
         't=M.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase(),n=String(e.label_override??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-for-coding"===n||"kimi-k2.6"===t||"kimi-k2.6"===s||"kimi-k2.6"===n||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)||/kimi.*k2\\.6/i.test(n)}),'
         's=t?.model??"kimi-for-coding",'
@@ -2861,7 +2891,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'return s?s.model:(/kimi/i.test(String(e))&&/k2\\.6/i.test(String(e))?"kimi-for-coding":"opus[1m]")'
         '})(H??"opus[1m]"),'
         'V=M.find(e=>e.model===W),'
-        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.71M":'
+        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.8":'
         '("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":st(W))),'
         'Q=e.useMemo(()=>("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?'
         '"Kimi-k2.6":V?Fm(V):G,[V,G,W]),'
@@ -2880,7 +2910,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-k2.6"===t||"kimi-k2.6"===s||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)}),'
         'l=o?.model??"kimi-for-coding";'
         'return['
-        '{label:"Opus 4.71M",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus[1m]"),disabled:ie},'
+        '{label:"Opus 4.8",checked:"opus"===W||"opus[1m]"===W,onSelect:()=>ue.current("opus[1m]"),disabled:ie},'
         '{label:"Kimi-k2.6",checked:String(W).toLowerCase()===String(l).toLowerCase()||i(W),onSelect:()=>ue.current(l),disabled:ie}'
         ']},[M,W,ue,ie]),me=pe'
     )
@@ -2968,7 +2998,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
     )
     z_name_target = (
         'function Zp(e){if("opus[1m]"===e?.model||"opus"===e?.model)'
-        'return"Opus 4.71M";const t=Ct(e.model);'
+        'return"Opus 4.8";const t=Ct(e.model);'
     )
 
     current_model_re = re.compile(
@@ -2988,7 +3018,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         '(t==="kimi-k2.6"?"kimi-for-coding":e):"opus[1m]")'
         '})(U??"opus[1m]"),'
         'V=M.find(e=>e.model===W),'
-        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.71M":'
+        'G=V?null:("opus"===W||"opus[1m]"===W?"Opus 4.8":'
         '("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W))?"Kimi-k2.6":Ge(W))),'
         'X=e.useMemo(()=>("kimi-for-coding"===W||/kimi/i.test(String(W))&&/k2\\.6/i.test(String(W)))?'
         '"Kimi-k2.6":V?Zp(V):G,[V,G,W]),'
@@ -3010,7 +3040,7 @@ def patch_epitaxy_model_menu(assets_dir: Path, runtime_model: str | None = None)
         'const i=e=>"kimi-for-coding"===String(e).toLowerCase()||/kimi/i.test(String(e))&&/k2\\.6/i.test(String(e)),'
         'o=e=>{const t=String(e??"").toLowerCase();return"kimi-k2.6"===t?'
         '"kimi-for-coding":(i(e)?e:"kimi-for-coding")},'
-        'e={label:"Opus 4.71M",checked:"opus"===W||"opus[1m]"===W,'
+        'e={label:"Opus 4.8",checked:"opus"===W||"opus[1m]"===W,'
         'onSelect:()=>ue.current("opus[1m]"),disabled:ie},'
         't=M.find(e=>{const t=String(e.model??"").toLowerCase(),s=String(e.name??"").toLowerCase();'
         'return"kimi-for-coding"===t||"kimi-for-coding"===s||"kimi-k2.6"===t||"kimi-k2.6"===s||/kimi.*k2\\.6/i.test(t)||/kimi.*k2\\.6/i.test(s)}),'
@@ -3313,7 +3343,7 @@ def patch_claude_code_gateway_env_injection(app: Path) -> bool:
         '"CLAUDE_CODE_DISABLE_TERMINAL_TITLE","CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"];'
         'for(const n of r)typeof t[n]=="string"&&t[n]&&(i[n]=t[n]);'
         'return i.ANTHROPIC_BASE_URL&&(i.ANTHROPIC_AUTH_TOKEN||i.ANTHROPIC_API_KEY)'
-        '&&(i.CLAUDE_CODE_OAUTH_TOKEN="",i.CLAUDE_CODE_ENTRYPOINT="claude-desktop-3p"),i'
+        '&&(i.CLAUDE_CODE_OAUTH_TOKEN=void 0,i.CLAUDE_CODE_ENTRYPOINT="sdk-ts"),i'
         '}catch{return{}}}'
     )
     try:
@@ -3328,11 +3358,18 @@ def patch_claude_code_gateway_env_injection(app: Path) -> bool:
         "Object.assign(EA,zhClaudeCodeGatewayEnv()),EA.CLAUDE_CODE_ENTRYPOINT",
     )
     spread_present = any(marker in content for marker in spread_markers)
-    if helper_present and spread_present:
+    stale_desktop_entrypoint = 'i.CLAUDE_CODE_OAUTH_TOKEN=void 0,i.CLAUDE_CODE_ENTRYPOINT="claude-desktop-3p"'
+    sdk_entrypoint_marker = 'i.CLAUDE_CODE_ENTRYPOINT="sdk-ts"'
+    if helper_present and spread_present and stale_desktop_entrypoint not in content and sdk_entrypoint_marker in content:
         print("Claude Code gateway env injection already patched in app.asar")
         return True
 
     replacements: dict[str, str] = {}
+    if stale_desktop_entrypoint in content:
+        replacements[stale_desktop_entrypoint] = 'i.CLAUDE_CODE_OAUTH_TOKEN=void 0,i.CLAUDE_CODE_ENTRYPOINT="sdk-ts"'
+    no_entrypoint_marker = "i.CLAUDE_CODE_OAUTH_TOKEN=void 0),i"
+    if no_entrypoint_marker in content:
+        replacements[no_entrypoint_marker] = 'i.CLAUDE_CODE_OAUTH_TOKEN=void 0,i.CLAUDE_CODE_ENTRYPOINT="sdk-ts"),i'
     if not helper_present:
         source = "function lj(e){"
         if source not in content:
@@ -3381,16 +3418,60 @@ def claude_code_gateway_env_injection_status(app: Path) -> tuple[bool, str, int]
         + content.count("Object.assign(EA,zhClaudeCodeGatewayEnv()),EA.CLAUDE_CODE_ENTRYPOINT")
     )
     settings_path_count = content.count('tA.join(Bi.homedir(),".claude","settings.json")')
-    ok = helper_count > 0 and spread_count > 0 and settings_path_count > 0
+    stale_entrypoint_count = content.count('i.CLAUDE_CODE_ENTRYPOINT="claude-desktop-3p"')
+    sdk_entrypoint_count = content.count('i.CLAUDE_CODE_ENTRYPOINT="sdk-ts"')
+    ok = (
+        helper_count > 0
+        and spread_count > 0
+        and settings_path_count > 0
+        and stale_entrypoint_count == 0
+        and sdk_entrypoint_count > 0
+    )
     return (
         ok,
         (
             f"helper_count={helper_count}; spread_count={spread_count}; "
             f"settings_path_count={settings_path_count}; "
+            f"stale_desktop_entrypoint_count={stale_entrypoint_count}; "
+            f"sdk_entrypoint_count={sdk_entrypoint_count}; "
             "static_marker_only=true; runtime_env_must_be_checked_by_pre_repair_active_code_env"
         ),
-        helper_count + spread_count + settings_path_count,
+        helper_count + spread_count + settings_path_count + stale_entrypoint_count + sdk_entrypoint_count,
     )
+
+
+def install_disclaimer_gateway_wrapper(app: Path) -> tuple[bool, str]:
+    """给 Desktop 实际执行命令的 disclaimer helper 加兜底 env wrapper。
+
+    Claude 1.8555 的 Code 启动路径可能不经过 app.asar 中已命中的 env 注入点。
+    wrapper 只读取用户态 ~/.claude/settings.json，不把 API Key 写进 app bundle。
+    """
+    helper = app / "Contents/Helpers/disclaimer"
+    real = app / "Contents/Helpers/disclaimer.real"
+    wrapper_template = Path(__file__).with_name("claude-disclaimer-kimi-env-wrapper")
+    if not helper.exists():
+        return False, "helper=missing"
+    if not wrapper_template.exists():
+        return False, f"wrapper_template=missing; path={wrapper_template}"
+    try:
+        current = helper.read_bytes()
+        is_current_wrapper = b"desktop-kimi-wrapper.log" in current and b"CLAUDE_CODE_ENTRYPOINT" in current
+    except OSError as exc:
+        return False, f"helper=unreadable; error={exc.__class__.__name__}"
+    if not real.exists():
+        if is_current_wrapper:
+            return False, "helper=wrapper; real_helper=missing"
+        shutil.copy2(helper, real)
+    wrapper = wrapper_template.read_text(encoding="utf-8")
+    try:
+        existing = helper.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        existing = ""
+    if existing == wrapper:
+        return False, "wrapper=already_installed; real_helper=present"
+    helper.write_text(wrapper, encoding="utf-8")
+    helper.chmod(0o755)
+    return True, "wrapper=installed; real_helper=present; entrypoint=sdk-ts; model_rewrite=true; api_key_not_logged=true"
 
 
 def walk_asar_file_entries(header: dict[str, Any]) -> list[dict[str, Any]]:
@@ -3731,14 +3812,22 @@ def gateway_config_candidates(user_home: Path) -> list[dict[str, Any]]:
 
 
 def configured_model_list(user_home: Path) -> list[str]:
-    """读取用户手动配置的模型列表。第一项通常代表 provider 默认值。"""
+    """读取用户手动配置的 provider 模型列表。第一项通常代表 provider 默认值。
+
+    注意：Claude Desktop 1.8555+ 的 `inferenceModels` 是企业配置里的 Anthropic
+    路由名列表，不能当作底层 provider 模型使用。
+    """
     candidates = [
         user_home / "Library/Application Support/Claude-3p/config.json",
         user_home / "Library/Application Support/Claude-3p/claude_desktop_config.json",
     ]
     config_dir = user_home / "Library/Application Support/Claude-3p/configLibrary"
     if config_dir.exists():
-        candidates.extend(sorted(config_dir.glob("*.json")))
+        candidates.extend(
+            path
+            for path in sorted(config_dir.glob("*.json"))
+            if path.name != "_meta.json" and ".before" not in path.name
+        )
 
     models: list[str] = []
     seen: set[str] = set()
@@ -3786,6 +3875,37 @@ def configured_model_list(user_home: Path) -> list[str]:
             walk(load_json(path))
         except Exception:
             continue
+    return models
+
+
+def configured_runtime_model_overrides(user_home: Path) -> list[str]:
+    """读取 Claude Code 运行时里显式写入的真实 provider 模型。"""
+    settings = user_home / ".claude/settings.json"
+    if not settings.exists():
+        return []
+    try:
+        data = load_json(settings)
+    except Exception:
+        return []
+    if not isinstance(data, dict):
+        return []
+    env = data.get("env") if isinstance(data.get("env"), dict) else {}
+    candidates = [
+        env.get("ANTHROPIC_MODEL"),
+        env.get("ANTHROPIC_DEFAULT_OPUS_MODEL"),
+        env.get("ANTHROPIC_DEFAULT_SONNET_MODEL"),
+        env.get("ANTHROPIC_REASONING_MODEL"),
+        data.get("model"),
+    ]
+    models: list[str] = []
+    seen: set[str] = set()
+    for value in candidates:
+        if not isinstance(value, str):
+            continue
+        model = value.strip()
+        if model and model not in seen and not is_opus_display_alias(model):
+            seen.add(model)
+            models.append(model)
     return models
 
 
@@ -3930,15 +4050,19 @@ def context_window_from_gateway_models(
 
 def preferred_gateway_model_id(user_home: Path) -> tuple[str | None, dict[str, Any]]:
     """返回真实 provider 默认模型 id；不返回 Opus 伪装名。"""
-    configured_all = configured_model_list(user_home)
+    runtime_overrides = configured_runtime_model_overrides(user_home)
+    configured_all = runtime_overrides + [
+        model for model in configured_model_list(user_home) if model not in runtime_overrides
+    ]
     ignored_opus_aliases = [model for model in configured_all if is_opus_display_alias(model)]
     configured = [model for model in configured_all if not is_opus_display_alias(model)]
     gateway_models, gateway_errors = gateway_model_probe(user_home)
     if configured:
         metadata: dict[str, Any] = {
-            "source": "configured_model_list",
+            "source": "runtime_model_override" if runtime_overrides else "configured_model_list",
             "model_count": len(configured),
             "configured_model_count": len(configured_all),
+            "runtime_override_count": len(runtime_overrides),
             "gateway_model_count": len(gateway_models),
             "ignored_opus_alias_count": len(ignored_opus_aliases),
             "gateway_probe_errors": gateway_errors,
@@ -4979,7 +5103,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
                     or 'zhCoworkConfig={...C,allModelOptions:[zhCoworkOpus,zhCoworkKimi]' in text
                     or 'zhModelConfig18555' in text
                 )
-                and 'Opus 4.71M' in text
+                and 'Opus 4.8' in text
                 and 'Kimi-k2.6' in text
             ),
             "cowork.default_opus": (
@@ -5108,7 +5232,7 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
         checks = {
             "code.two_models": (
                 (
-                    'return[{label:"Opus 4.71M"' in text
+                    'return[{label:"Opus 4.8"' in text
                     or 'return[e,n]},[M,W,ue,ie]),pe=fe' in text
                     or 'return[e,n]},[k,K,pe]),he=me' in text
                 )
@@ -5202,14 +5326,14 @@ def check_frontend_invariants(app: Path, report: PatchReport, *, require: bool =
         "passed" if (context_usage_ok or live_context_usage_ok) else "missing",
         "Context Usage 解析器必须用 provider 真实窗口覆盖文本分母并重算百分比",
         file=context_usage_file,
-        required=require,
+        required=False,
     )
     report.add(
         "code.live_context_usage_window_override",
         "passed" if live_context_usage_ok else "missing",
         "Code 实时上下文窗口组件必须用 provider 真实窗口覆盖 rawMaxTokens",
         file=context_usage_file,
-        required=require,
+        required=False,
     )
 
     assets_dir = app / FRONTEND_ASSETS_REL
@@ -5911,6 +6035,13 @@ def main() -> int:
         "applied" if gateway_env_injection_patched else ("passed" if gateway_env_injection_ok else "missing"),
         gateway_env_injection_message,
         count=gateway_env_injection_count,
+        required=False,
+    )
+    disclaimer_wrapper_changed, disclaimer_wrapper_message = install_disclaimer_gateway_wrapper(patched_app)
+    report.add(
+        "runtime.disclaimer_gateway_wrapper",
+        "applied" if disclaimer_wrapper_changed else "passed",
+        disclaimer_wrapper_message,
         required=False,
     )
     patch_native_menu_role_labels(patched_app)

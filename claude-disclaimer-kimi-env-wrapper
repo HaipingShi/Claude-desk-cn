@@ -1,0 +1,79 @@
+#!/bin/zsh
+set -u
+
+REAL_DISCLAIMER="$(dirname "$0")/disclaimer.real"
+SETTINGS="$HOME/.claude/settings.json"
+
+if [[ -f "$SETTINGS" ]]; then
+  eval "$(/usr/bin/python3 - <<'PYENV'
+import json
+import shlex
+from pathlib import Path
+
+settings = Path.home() / ".claude" / "settings.json"
+try:
+    data = json.loads(settings.read_text())
+except Exception:
+    data = {}
+
+env = data.get("env") if isinstance(data.get("env"), dict) else {}
+keys = [
+    "ANTHROPIC_BASE_URL",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_REASONING_MODEL",
+    "ANTHROPIC_CUSTOM_HEADERS",
+    "API_TIMEOUT_MS",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+]
+for key in keys:
+    value = env.get(key)
+    if isinstance(value, str) and value:
+        print(f"export {key}={shlex.quote(value)}")
+PYENV
+)"
+fi
+
+export CLAUDE_CODE_ENTRYPOINT="sdk-ts"
+unset CLAUDE_CODE_OAUTH_TOKEN
+unset USE_STAGING_OAUTH
+unset USE_LOCAL_OAUTH
+
+args=("$@")
+runtime_model="${ANTHROPIC_MODEL:-${ANTHROPIC_DEFAULT_OPUS_MODEL:-kimi-for-coding}}"
+rewrote_model="false"
+
+if [[ "${#args[@]}" -gt 0 && "$(basename "${args[1]}")" == "claude" ]]; then
+  i=1
+  while [[ "$i" -le "${#args[@]}" ]]; do
+    if [[ "${args[$i]}" == "--model" && "$((i + 1))" -le "${#args[@]}" ]]; then
+      args[$((i + 1))]="$runtime_model"
+      rewrote_model="true"
+      i=$((i + 2))
+      continue
+    fi
+    if [[ "${args[$i]}" == --model=* ]]; then
+      args[$i]="--model=$runtime_model"
+      rewrote_model="true"
+    fi
+    i=$((i + 1))
+  done
+fi
+
+{
+  printf '%s entrypoint=%s model=%s rewrote_model=%s command=%s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" \
+    "${CLAUDE_CODE_ENTRYPOINT}" \
+    "${runtime_model}" \
+    "${rewrote_model}" \
+    "${args[1]:-unknown}"
+} >> "$HOME/.claude/desktop-kimi-wrapper.log"
+
+exec "$REAL_DISCLAIMER" "${args[@]}"
