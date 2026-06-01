@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from patches.cleanup import cleanup_stale_display_names
+from patches.verification import scan_for_stale_display_names
 from patches.constants import (
     OPUS_DISPLAY_NAME,
     SAFE_OPUS_MODEL_ID,
@@ -5930,6 +5931,14 @@ def main() -> int:
         report = PatchReport(str(args.app), get_claude_version(args.app), "diagnose")
         check_frontend_invariants(args.app, report, require=True)
         check_runtime_invariants(args.user_home, report, require=False, project_paths=args.project)
+        stale_findings = scan_for_stale_display_names(args.app)
+        if stale_findings:
+            for finding in stale_findings:
+                report.add(
+                    f"residue.{finding['file'].replace('/', '_')}",
+                    "warning",
+                    f"发现旧版补丁残留: {finding['matches']} in {finding['file']}",
+                )
         write_patch_report(report)
         print_report_summary(report)
         return 1 if report.has_required_failures() else 0
@@ -6168,7 +6177,16 @@ def main() -> int:
         )
         clear_frontend_cache(args.user_home, args.dry_run)
     verify(patched_app)
-    if not check_frontend_invariants(patched_app, report, require=True):
+    check_frontend_invariants(patched_app, report, require=True)
+    stale_findings = scan_for_stale_display_names(patched_app)
+    if stale_findings:
+        for finding in stale_findings:
+            report.add(
+                f"residue.{finding['file'].replace('/', '_')}",
+                "warning",
+                f"发现旧版补丁残留: {finding['matches']} in {finding['file']}",
+            )
+    if report.has_required_failures():
         write_patch_report(report)
         print_report_summary(report)
         print("Required frontend invariants failed. Original Claude.app was left untouched.", file=sys.stderr)
