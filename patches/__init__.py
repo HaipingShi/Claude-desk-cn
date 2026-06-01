@@ -1,0 +1,1 @@
+"""Patch utilities extracted from patch_claude_zh_cn.py."""
