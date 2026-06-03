@@ -76,7 +76,7 @@ wrapper 做三件事：
 验证 wrapper 生效：
 
 ```bash
-tail -20 ~/.claude/desktop-kimi-wrapper.log
+tail -20 ~/.claude/desktop-gateway-wrapper.log
 ```
 
 应看到正确的 `entrypoint=sdk-ts`。
@@ -153,6 +153,6 @@ sudo codesign --force --deep --sign - /Applications/Claude.app
 
 1. 运行诊断：`python3 patch_claude_zh_cn.py --diagnose`
 2. 确认消息接口可用（curl 返回 `200`）
-3. 查看 wrapper 日志：`tail -20 ~/.claude/desktop-kimi-wrapper.log`
+3. 查看 wrapper 日志：`tail -20 ~/.claude/desktop-gateway-wrapper.log`
 4. 查看最新 transcript 不出现新 `401`，且 `entrypoint=sdk-ts`
 5. 开新会话测试 Cowork 和 Code 都能正常回复

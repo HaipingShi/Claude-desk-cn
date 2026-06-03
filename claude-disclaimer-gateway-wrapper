@@ -47,7 +47,7 @@ unset USE_STAGING_OAUTH
 unset USE_LOCAL_OAUTH
 
 args=("$@")
-runtime_model="${ANTHROPIC_MODEL:-${ANTHROPIC_DEFAULT_OPUS_MODEL:-kimi-for-coding}}"
+runtime_model="${ANTHROPIC_MODEL:-${ANTHROPIC_DEFAULT_OPUS_MODEL:-}}"
 rewrote_model="false"
 
 if [[ "${#args[@]}" -gt 0 && "$(basename "${args[1]}")" == "claude" ]]; then
@@ -74,6 +74,6 @@ fi
     "${runtime_model}" \
     "${rewrote_model}" \
     "${args[1]:-unknown}"
-} >> "$HOME/.claude/desktop-kimi-wrapper.log"
+} >> "$HOME/.claude/desktop-gateway-wrapper.log"
 
 exec "$REAL_DISCLAIMER" "${args[@]}"

@@ -6,3 +6,5 @@ venv/
 *.log
 Logs/
 docs/superpowers/plans/
+.spec-workflow/
+.remember/

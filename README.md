@@ -105,7 +105,7 @@ Kimi 伪装 `Opus 4.8` 的完整排障复盘见 [`docs/troubleshooting-gateway-4
 - `repair_code_runtime.command`
 - `prepare_official_update.command`
 - `patch_claude_zh_cn.py`
-- `claude-disclaimer-kimi-env-wrapper`
+- `claude-disclaimer-gateway-wrapper`
 - `resources/`
 - `README.md`
 
@@ -138,7 +138,7 @@ sudo /usr/bin/python3 patch_claude_zh_cn.py --user-home "$HOME" --prepare-offici
 - `repair_code_runtime.command`：Mac 双击修复 Code 运行时入口，不替换 app，会备份并合并同步第三方网关到 `~/.claude/settings.json`，同时检查桌面版 Code、终端 CLI 和 VS Code Claude 插件状态，并写入 `Logs/latest.json` 与 `Logs/command-latest.log`。
 - `prepare_official_update.command`：安装官方原版前的准备入口，会解除当前汉化版的覆盖阻碍，但不删除、不移动 app。
 - `patch_claude_zh_cn.py`：执行补丁、备份、重签名和验证的主脚本。
-- `claude-disclaimer-kimi-env-wrapper`：安装到 Claude app helper 的运行时 wrapper 模板，用于强制 Code 子进程走 `sdk-ts` 并把 UI 伪装模型改写为 provider 真实模型。
+- `claude-disclaimer-gateway-wrapper`：安装到 Claude app helper 的运行时 wrapper 模板，用于强制 Code 子进程走 `sdk-ts` 并把 UI 伪装模型改写为 provider 真实模型。
 - `docs/implementation.md`：当前功能、实现原理和维护逻辑说明。
 - `docs/troubleshooting-gateway-401.md`：第三方网关 Code 401 通用排障指南（不绑定特定 provider）。
 - `Logs/`：安装、诊断和会话瘦身日志目录，运行脚本后自动生成，不提交到 Git。

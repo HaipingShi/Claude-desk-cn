@@ -3433,14 +3433,14 @@ def install_disclaimer_gateway_wrapper(app: Path) -> tuple[bool, str]:
     """
     helper = app / "Contents/Helpers/disclaimer"
     real = app / "Contents/Helpers/disclaimer.real"
-    wrapper_template = Path(__file__).with_name("claude-disclaimer-kimi-env-wrapper")
+    wrapper_template = Path(__file__).with_name("claude-disclaimer-gateway-wrapper")
     if not helper.exists():
         return False, "helper=missing"
     if not wrapper_template.exists():
         return False, f"wrapper_template=missing; path={wrapper_template}"
     try:
         current = helper.read_bytes()
-        is_current_wrapper = b"desktop-kimi-wrapper.log" in current and b"CLAUDE_CODE_ENTRYPOINT" in current
+        is_current_wrapper = b"desktop-gateway-wrapper.log" in current and b"CLAUDE_CODE_ENTRYPOINT" in current
     except OSError as exc:
         return False, f"helper=unreadable; error={exc.__class__.__name__}"
     if not real.exists():
