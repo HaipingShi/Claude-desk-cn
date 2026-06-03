@@ -10,7 +10,7 @@
 
 1. 中文化：安装前端语言包、桌面壳层语言包、macOS 原生菜单翻译和部分硬编码文案。
 2. 可用性：自动写入中文语言偏好，重新签名并清除隔离属性，降低补丁后无法启动的风险。
-3. 第三方网关兼容：界面保留 `Opus 4.71M` 显示入口，但 Claude Code 真实默认模型优先跟随网关或手动模型列表，不把上下文窗口写死为某个 provider 的当前数值。
+3. 第三方网关兼容：界面保留 `Opus 4.8` 显示入口，但 Claude Code 真实默认模型优先跟随网关或手动模型列表，不把上下文窗口写死为某个 provider 的当前数值。
 
 ## 关键文件
 
@@ -160,7 +160,7 @@ en ?? Zs ?? $s ?? Gs ?? "bypassPermissions"
 Claude Code 的一些能力和前端判断依赖 Opus 入口。用户需要继续保留界面上的：
 
 ```text
-Opus 4.71M
+Opus 4.8
 ```
 
 但上下文容量不能跟着显示名伪装。真实请求模型必须优先来自第三方推理配置或网关 `/v1/models`，例如当前是 Kimi 就按 Kimi，之后换成 DeepSeek 就按 DeepSeek。
@@ -169,7 +169,7 @@ Opus 4.71M
 
 1. 安装脚本会先读取第三方推理设置中的手动模型列表；如果没有，再请求当前网关 `/v1/models`。能发现真实模型时，`~/.claude/settings.json` 的 `model` 写入 provider 返回的真实默认模型，强度固定为 `max`。
 2. 前端模型识别函数会被补丁成：如果当前模型是 `opus` 或 `opus[1m]`，并且第三方网关返回了非空模型列表，就把 Opus 显示入口视为有效模型；但这只影响 UI，不代表上下文窗口固定为 Opus。
-3. Code 页面模型菜单会固定重建为 `Opus 4.71M` 和 `Kimi-k2.6` 两项，再追加完整强度菜单；新打开时默认 `Opus 4.71M · 最大`。
+3. Code 页面模型菜单会固定重建为 `Opus 4.8` 和 `Kimi-k2.6` 两项，再追加完整强度菜单；新打开时默认 `Opus 4.8 · 最大`。
 4. 默认对话和 Claude Code 分别走 `baku_model` 与 `ccr_model` / `cowork_model` 路径。本项目会同时补丁这两条路径，普通默认对话不再回落到 `Sonnet 4.6`。
 
 补丁后的关键逻辑等价于：
@@ -189,12 +189,12 @@ if ((e === "opus" || e === "opus[1m]") && t.length > 0) return e;
 
 模型菜单里的两项含义不同：
 
-- `Opus 4.71M` 是固定显示入口，用于保持 Claude Desktop 前端里依赖 Opus 名称的能力入口。它不再承担“声明上下文窗口”或“实际请求模型”的职责。
-- Code/Cowork 内部必须拆分显示模型和运行模型：`displayModel` 可以是 `opus` / `Opus 4.71M`，但 `runtimeModel` 必须是 provider 真实模型 id。当前 provider 默认是 `kimi-for-coding` 时，点击或默认显示 `Opus 4.71M` 也只能以 `--model kimi-for-coding` 启动 Claude Code。
+- `Opus 4.8` 是固定显示入口，用于保持 Claude Desktop 前端里依赖 Opus 名称的能力入口。它不再承担“声明上下文窗口”或“实际请求模型”的职责。
+- Code/Cowork 内部必须拆分显示模型和运行模型：`displayModel` 可以是 `opus` / `Opus 4.8`，但 `runtimeModel` 必须是 provider 真实模型 id。当前 provider 默认是 `kimi-for-coding` 时，点击或默认显示 `Opus 4.8` 也只能以 `--model kimi-for-coding` 启动 Claude Code。
 - `Kimi-k2.6` 是真实模型入口。补丁会优先使用网关返回列表里的真实 Kimi model id；如果网关暂时没有返回 Kimi，但当前会话已经保存了 Kimi id，也会沿用该 id；如果两者都没有，则用 `kimi-for-coding` 作为实际 id。它不会伪装成 Opus，也不会再用显示名制造第二个 Kimi 项。
 - Code 页的上下文窗口不信任上游文本或实时组件里的窗口上限。安装脚本会把 provider 当前真实窗口注入 `## Context Usage` 文本解析器，也会覆盖底部实时弹窗里的 `contextUsage.rawMaxTokens`，再按 `totalTokens / providerContextWindow` 重新计算百分比。进度条可以保持最大宽度 100%，但文字必须显示真实分母和真实百分比。
 
-默认对话路径里，原始默认值是 `claude-sonnet-4-6`。补丁会把它改为 `opus`，并在普通对话模型列表里固定插入 `Opus 4.71M`。这样新建普通对话时不会因为找不到可选模型而显示空白，也不会在发送消息后自动变成 `Sonnet 4.6`。
+默认对话路径里，原始默认值是 `claude-sonnet-4-6`。补丁会把它改为 `opus`，并在普通对话模型列表里固定插入 `Opus 4.8`。这样新建普通对话时不会因为找不到可选模型而显示空白，也不会在发送消息后自动变成 `Sonnet 4.6`。
 
 Code 页面强度菜单不再只依赖官方 `Od(W)` 能力判断。当前模型为 `opus`、`opus[1m]` 或 Kimi-k2.6 时，会强制保留五档：
 
@@ -204,17 +204,17 @@ Code 页面强度菜单不再只依赖官方 `Od(W)` 能力判断。当前模型
 
 默认强度固定为 `最大`。Code 会使用补丁专用键 `ccd-effort-level-cn` / `epitaxy_effort_level_cn`，Cowork 使用 `cowork_effort_level_cn`，避免旧电脑里的 `high` 缓存继续覆盖新默认。用户手动选择强度后仍走原生 `setEffortLevel` / `hs(e)` 流程；创建或切换会话时，`effort` 对 Opus 和 Kimi 都会继续传递。
 
-普通对话模型菜单仍然需要读取模型候选项上的能力元数据。因此固定 Opus 项不能只写 `{ model, name }`，必须保留 `thinking_modes` 等字段。当前实现会从网关返回的模型列表中寻找可复用的 Opus 或支持思考模式的模型项作为模板，再生成固定的 `Opus 4.71M` 入口。
+普通对话模型菜单仍然需要读取模型候选项上的能力元数据。因此固定 Opus 项不能只写 `{ model, name }`，必须保留 `thinking_modes` 等字段。当前实现会从网关返回的模型列表中寻找可复用的 Opus 或支持思考模式的模型项作为模板，再生成固定的 `Opus 4.8` 入口。
 
-底部模型按钮的强度标签还会走另一处 `Gft()` 模式读取逻辑，它读取的是原始 `allModelOptions`，不一定包含固定注入后的 `opus[1m]`。因此补丁也会让 `Gft()` 在当前模型为 `opus` / `opus[1m]` 且原始列表找不到时，回退到带 `thinking_modes` 的模型模板，保证 `Opus 4.71M · 最大` 这类显示不丢失。
+底部模型按钮的强度标签还会走另一处 `Gft()` 模式读取逻辑，它读取的是原始 `allModelOptions`，不一定包含固定注入后的 `opus[1m]`。因此补丁也会让 `Gft()` 在当前模型为 `opus` / `opus[1m]` 且原始列表找不到时，回退到带 `thinking_modes` 的模型模板，保证 `Opus 4.8 · 最大` 这类显示不丢失。
 
-底部触发器本身也有显示对象兜底：如果当前模型或默认模型指向 Opus，但候选列表暂时没有对应显示项，会临时使用 `{ model: "opus", name: "Opus 4.71M" }` 渲染按钮，防止只剩强度标签。
+底部触发器本身也有显示对象兜底：如果当前模型或默认模型指向 Opus，但候选列表暂时没有对应显示项，会临时使用 `{ model: "opus", name: "Opus 4.8" }` 渲染按钮，防止只剩强度标签。
 
-最终渲染前还会检查 `Vft(W)` 的结果。如果显示名为空，会兜底使用 `Opus 4.71M`，保留原本计算出来的强度标签，避免再次出现只有 `· 高` 或 `· 最大` 的状态。
+最终渲染前还会检查 `Vft(W)` 的结果。如果显示名为空，会兜底使用 `Opus 4.8`，保留原本计算出来的强度标签，避免再次出现只有 `· 高` 或 `· 最大` 的状态。
 
-模型按钮组件 `Wft()` 内部也有同样兜底：如果格式化结果为空，直接渲染 `Opus 4.71M`。
+模型按钮组件 `Wft()` 内部也有同样兜底：如果格式化结果为空，直接渲染 `Opus 4.8`。
 
-模型名格式化函数 `Vft()` 也会把 `opus` / `opus[1m]` 直接显示为 `Opus 4.71M`，避免部分普通对话入口绕过候选项名称后又显示原始 id。
+模型名格式化函数 `Vft()` 也会把 `opus` / `opus[1m]` 直接显示为 `Opus 4.8`，避免部分普通对话入口绕过候选项名称后又显示原始 id。
 
 如果父组件传入的 `contextModel` 还是旧 `kimi-for-coding`，默认入口会先归一为 `opus`，再去计算显示名和强度模式。
 
@@ -222,7 +222,7 @@ Code 页面强度菜单不再只依赖官方 `Od(W)` 能力判断。当前模型
 
 Claude Desktop `1.7196.0` 之后，模型菜单实现再次换了锚点：
 
-- Cowork / 共享模型配置从旧 `Jbt` 路径变为 `k5()` + `Fht/Pht`。补丁必须固定 `k5("ccr_model")` 与 `k5("cowork_model")` 的候选项为 `Opus 4.71M` 和 `Kimi-k2.6`，并在 `Fht` 中补 Cowork fallback 强度区。
+- Cowork / 共享模型配置从旧 `Jbt` 路径变为 `k5()` + `Fht/Pht`。补丁必须固定 `k5("ccr_model")` 与 `k5("cowork_model")` 的候选项为 `Opus 4.8` 和 `Kimi-k2.6`，并在 `Fht` 中补 Cowork fallback 强度区。
 - Code 强度从旧 `um="ccd-effort-level"` 变为 `zm="ccd-effort-level"`，能力判断集中在 `Um()` / `Hm()`。补丁必须把默认强度改为 `max`，把显示标签改为中文，并让强度 section 无条件使用五档。
 - Code 模型菜单项从旧 `pe/gs` 路径拆成 `fe/pe` 与 `modelExtraSections:Ss`。补丁需要同时改当前模型解析、菜单项生成和提交参数里的 `effort` 传递。
 - 权限默认值除了 `Ic()`，新版 landing chunk 还会出现 `Ws("cc-landing-draft-permission-mode","acceptEdits",!1)`，也必须改成补丁专用键和 `bypassPermissions`。
@@ -231,7 +231,7 @@ Claude Desktop `1.7196.0` 之后，模型菜单实现再次换了锚点：
 
 Claude Desktop `1.8555.0` 之后，模型和强度再次合并到新的共享路径：
 
-- Cowork/Code 共享模型配置改为 `Qte(e="ccr_model")` / `Ise()`，不再稳定出现旧 `Jbt`、`k5`、`Wmt`。补丁必须在 `Qte` 返回值处固定重建 `ccr_model` 与 `cowork_model` 的两项候选：`Opus 4.71M` 和 `Kimi-k2.6`。
+- Cowork/Code 共享模型配置改为 `Qte(e="ccr_model")` / `Ise()`，不再稳定出现旧 `Jbt`、`k5`、`Wmt`。补丁必须在 `Qte` 返回值处固定重建 `ccr_model` 与 `cowork_model` 的两项候选：`Opus 4.8` 和 `Kimi-k2.6`。
 - 强度配置改为共享 `aut(e,t)` / `rut`。补丁必须让 `opus`、`opus[1m]`、`kimi-for-coding` 和 Kimi-k2.6 相关 id 无条件得到五档 `低 / 中 / 高 / 超高 / 最大`，默认仍为 `max`。
 - Code 页变量改为 `hm/gm/vm/$m`，模型列表由共享 `Qte` 提供。补丁必须继续把显示模型映射到 `zhRuntimeModel`，启动对象使用 `model:zhRuntimeModel`，不能回退到显示用的 `model:K`。
 - 新版权限默认值会通过 `Od("cc-landing-draft-permission-mode","acceptEdits")` 和 `Rn=e.useMemo(...)` 计算。补丁必须同时覆盖 `Od` 和 `Rn`，否则其他电脑仍可能默认成“接受编辑”。
@@ -249,16 +249,16 @@ Claude Desktop `1.8555.0` 之后，模型和强度再次合并到新的共享路
 
 Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化。每次更新本项目或重新适配新版 Claude 时，必须重新检查这些重复问题：
 
-1. Cowork 不能显示 `Legacy Model`，只能显示 `Opus 4.71M` 和 `Kimi-k2.6`。
+1. Cowork 不能显示 `Legacy Model`，只能显示 `Opus 4.8` 和 `Kimi-k2.6`。
 2. Cowork 点击 `Kimi-k2.6` 后，勾选必须移动到底部真实 Kimi 项，不能被归一回 `opus[1m]`。
 3. Cowork 不应因为 `api.kimi.com` 的旧健康检查结果显示黄色阻断横幅；如果网关真实不可用，只影响实际请求，不应阻止模型菜单。
 4. Code 模式底部不能只显示 `· 高`、`· 最大` 或空模型名。
-5. Code 模式菜单只能有两个模型入口：`Opus 4.71M` 和 `Kimi-k2.6`，不能出现两个 Kimi。
+5. Code 模式菜单只能有两个模型入口：`Opus 4.8` 和 `Kimi-k2.6`，不能出现两个 Kimi。
 6. Code 和 Cowork 都必须显示五档强度：`低 / 中 / 高 / 超高 / 最大`。
 7. `超高` 和 `最大` 必须可点击，选择后底部标签要同步更新。
 8. 新版本如果把共享模型选择器从旧 `Wft/Vft/ogt` 改到新函数，必须补丁新的共享选择器，而不是只修旧 anchor。
 9. Code 新建会话权限模式必须默认 `绕过权限`，不能因为新版存储 helper 或旧电脑缓存回到 `接受编辑`。
-10. Code 和 Cowork 新打开时必须默认 `Opus 4.71M · 最大`，不能被旧 sticky model、旧 session 默认或旧强度缓存改成 `Kimi-k2.6 · 高`。
+10. Code 和 Cowork 新打开时必须默认 `Opus 4.8 · 最大`，不能被旧 sticky model、旧 session 默认或旧强度缓存改成 `Kimi-k2.6 · 高`。
 
 如果用户要安装官方原版，不能直接从 DMG 覆盖当前汉化版。补丁版 app 经过本地重签名、xattr 清理和整包替换，另一台电脑上还可能叠加运行中占用、锁定标记或内部权限差异。Finder 覆盖 app bundle 时会逐项复制，遇到内部条目不可写就会报“必须跳过某些项目”。维护策略是先运行 `prepare_official_update.command` 或 `--prepare-official-update`，只解除当前 `/Applications/Claude.app` 的锁定、扩展属性、owner 和用户写权限，然后让用户从官方 DMG 正常拖入覆盖。该流程不删除、不移动 app，也不触碰 `~/Library/Application Support/Claude*` 下的 API、网关和模型配置。
 
@@ -266,14 +266,14 @@ Claude Desktop 更新后，前端 bundle 文件名和压缩变量名经常变化
 
 - Cowork/普通入口：共享模型选择器 `Jbt`，固定重建两项模型，并移除 `Legacy Model` fallback 对当前菜单的影响。
 - `1.6608.2` 中 `Jbt` 从旧的外层 `conversationUuid` 组件拆成 `Jbt=({models:e,currentModelOption...})` 共享列表组件，外层配置仍负责 `Q/X/J`、当前模型和强度 section。脚本必须同时识别两种结构。
-- Cowork 默认：共享选择器内部仍显示 `Opus 4.71M` 作为首项，旧 sticky 里的 `kimi-for-coding` / `Kimi-k2.6` 不再绑架新打开 Cowork 的显示默认；真实 Claude Code 请求模型由 provider 默认模型同步逻辑处理。
+- Cowork 默认：共享选择器内部仍显示 `Opus 4.8` 作为首项，旧 sticky 里的 `kimi-for-coding` / `Kimi-k2.6` 不再绑架新打开 Cowork 的显示默认；真实 Claude Code 请求模型由 provider 默认模型同步逻辑处理。
 - Cowork 强度：`Jbt` 只在 Code 传入 `ccdEffortSection` 时有原生强度 section；Cowork 不传该 section，因此补丁会在 `Jbt` 内增加 fallback section。只要原生 section 缺失，就无条件使用 fallback，不再依赖 `activeMode` 字符串判断。默认值为 `max`，显示为“最大”，选中后写入补丁专用 `localStorage["cowork_effort_level_cn"]` 并派发 `cowork-effort-change`。
 - Claude `1.8089+` 的 Cowork 入口为 `Xae/Wmt`。这一版里旧补丁曾把强度区渲染成 `a.jsx(_mt,{section:Fw,...})`，但 `_mt` 已经变成无参 feature flag helper，会导致菜单只显示“强度”标题、没有任何可选项。当前实现使用 `zhCoworkEffortOptions` 作为稳定 marker，并在 `Wmt` 中内联渲染五档强度菜单项；升级适配时必须检查 `a.jsx(_mt,{section:Fw` 不再出现在主 bundle 中。
-- Cowork 模型点击：`1.8089+` 的 `Wmt` 在 `sticky_model_selector` 打开时会忽略组件内临时选择状态，导致点击 `Kimi-k2.6` 后立刻回到 `Opus 4.71M`。补丁必须让当前界面选择 `q` 优先于默认模型 `z`，诊断项 `cowork.current_selection_local` 用于防止这类“可见但不可选”的回归。
+- Cowork 模型点击：`1.8089+` 的 `Wmt` 在 `sticky_model_selector` 打开时会忽略组件内临时选择状态，导致点击 `Kimi-k2.6` 后立刻回到 `Opus 4.8`。补丁必须让当前界面选择 `q` 优先于默认模型 `z`，诊断项 `cowork.current_selection_local` 用于防止这类“可见但不可选”的回归。
 - 2026-05-20 新版汉化复查新增两类记录：一类是第三方推理设置页中由 `ion-dist/i18n/zh-CN.json` 和 `defaultMessage` 共同控制的英文残留；另一类是菜单类文案同时可能出现在前端 i18n 和 macOS 原生 `Localizable.strings` 中。例如“查看”菜单中的 `Background tasks`，当前真实来源是前端 key `PO+0DdDIId`，应由 `i18n.known_missing_strings` 检测；同时保留 `i18n.localizable_menu_labels` 兜底检查 `Localizable.strings`，不能只看其中一条路径。
 - Cowork 配置同步：Cowork 配置处监听 `cowork-effort-change`，让 `NT.setYukonSilverConfig({ effort })` 能使用最新强度。这样点击 `超高` 或 `最大` 后，不只更新菜单，也会进入后续会话配置。
 - Cowork/Code 健康横幅：新版可能把 `api.kimi.com/coding` 标成 `Unreachable`，也可能在 `Oqt` 分支里以 `InvalidConfig` 渲染 “Your provider setup needs a fix”。补丁必须同时覆盖这两条路径；`cowork.provider_setup_banner_hidden` 是必过项，避免只隐藏“无法连接”但漏掉“配置需要修复”的黄色横幅。
-- Code 页面：`zm()` 内的 `W/Q/pe/me` 负责模型菜单，`hm()/gm()` 和 `xs` 负责强度菜单；没有当前界面临时选择时，显示默认仍是 `Opus 4.71M`，强度固定为 `max`。真实请求模型由 `zhRuntimeModelFor()` 映射到 provider 默认模型，启动对象必须使用 `model:zhRuntimeModel`，不能再把显示用的 `model:W` 直接传入。强度必须无条件生成五档，不再依赖 `De`、`Fe`、`Oe`、旧 `ccd-effort-level` 缓存或本机环境。
+- Code 页面：`zm()` 内的 `W/Q/pe/me` 负责模型菜单，`hm()/gm()` 和 `xs` 负责强度菜单；没有当前界面临时选择时，显示默认仍是 `Opus 4.8`，强度固定为 `max`。真实请求模型由 `zhRuntimeModelFor()` 映射到 provider 默认模型，启动对象必须使用 `model:zhRuntimeModel`，不能再把显示用的 `model:W` 直接传入。强度必须无条件生成五档，不再依赖 `De`、`Fe`、`Oe`、旧 `ccd-effort-level` 缓存或本机环境。
 
 ### 9. 升级诊断日志、修复入口与必过 invariant
 
@@ -563,7 +563,7 @@ RESOURCES = ROOT / "resources"
 - 中文包可跨小版本复用。
 - 过期 key 不会污染最终安装包。
 
-本项目选择“保留 Opus 显示，但上下文能力跟随真实 provider 模型”，而不是把上下文窗口绑定到 `Opus 4.71M` 这个显示名。原因是：
+本项目选择“保留 Opus 显示，但上下文能力跟随真实 provider 模型”，而不是把上下文窗口绑定到 `Opus 4.8` 这个显示名。原因是：
 
 - Claude Code 前端能力和模式判断依赖 Opus 名称。
 - 用户需要保留 Opus 相关前端能力入口，但不希望上下文窗口被伪装名误导。
@@ -573,7 +573,7 @@ RESOURCES = ROOT / "resources"
 
 安装脚本还会把当前启用的第三方推理配置同步到 `~/.claude/settings.json > env`。桌面 Cowork 可以直接读取 Claude-3p 的 provider 配置，但 Code CLI 子进程更依赖 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AUTH_TOKEN` 和 `ANTHROPIC_API_KEY`。如果另一台电脑只复制了桌面设置、旧 `~/.claude/settings.json` 或根本没有 `~/.claude/settings.json`，就会出现 Cowork 可用、Code 401 的分裂状态。当前实现会优先读取 `configLibrary/_meta.json` 的 `appliedId`，跳过 `.before-*` 旧备份配置，必要时创建最小 `~/.claude/settings.json`，避免把过期 Key 同步给 Code。该文件同时可能被终端 Claude Code CLI 和 VS Code Claude 插件读取，因此同步必须是最小合并：写入前备份，写入后用 `runtime.desktop_code_env`、`runtime.terminal_cli_env`、`runtime.vscode_claude_extension` 三项确认三端状态。
 
-同一阶段会读取 provider 模型元数据中的 `context_length`、`contextWindow`、`max_input_tokens` 等字段，并同步到 `.claude.json` 顶层的 `tengu_hawthorn_window`。如果新电脑还没有 `.claude.json`，脚本会创建一个只包含该窗口键的最小配置，而不是继续让诊断停在 `missing`。选择 provider 默认模型时必须跳过 `opus` / `opus[1m]` / `Opus 4.71M` 这类显示别名；如果另一台电脑的手动模型列表把 Opus 放在第一项，`runtime.provider_default_ignores_opus_alias` 会记录被跳过的别名数量，并继续寻找真实第三方模型。只写 `cachedGrowthBookFeatures.tengu_hawthorn_window` 不够，因为旧 Claude Code 子进程可能不会把它当作运行时窗口；诊断项 `runtime.context_window_root_configured` 专门防止这种假通过。
+同一阶段会读取 provider 模型元数据中的 `context_length`、`contextWindow`、`max_input_tokens` 等字段，并同步到 `.claude.json` 顶层的 `tengu_hawthorn_window`。如果新电脑还没有 `.claude.json`，脚本会创建一个只包含该窗口键的最小配置，而不是继续让诊断停在 `missing`。选择 provider 默认模型时必须跳过 `opus` / `opus[1m]` / `Opus 4.8` 这类显示别名；如果另一台电脑的手动模型列表把 Opus 放在第一项，`runtime.provider_default_ignores_opus_alias` 会记录被跳过的别名数量，并继续寻找真实第三方模型。只写 `cachedGrowthBookFeatures.tengu_hawthorn_window` 不够，因为旧 Claude Code 子进程可能不会把它当作运行时窗口；诊断项 `runtime.context_window_root_configured` 专门防止这种假通过。
 
 这个值也会在安装时注入 Code 前端的两条显示路径：一条是历史消息里的 `## Context Usage` 文本解析逻辑，另一条是底部实时上下文弹窗的 `contextUsage.rawMaxTokens`。`--diagnose` 会记录 `code.context_usage_window_override`、`code.live_context_usage_window_override`、`runtime.provider_context_window`、`runtime.claude_code_context_window` 和 `runtime.context_window_match`：如果 provider 已经是 262144 或 1M，而 Claude Code 仍是 200000，或者实时弹窗仍显示 1.0M/200.0k，日志会直接指出不一致。
 

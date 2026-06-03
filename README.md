@@ -71,7 +71,7 @@ Logs/command-latest.log
 
 如果修复后仍失败，把 `Logs/latest.json` 和 `Logs/command-latest.log` 发回来即可。日志只记录 Claude 版本、补丁点、网关 endpoint、认证方案、环境是否匹配、项目级覆盖类型和错误状态，不记录 API Key、token 或完整对话内容。日志会同时记录桌面版 Code、终端 `claude` CLI 和 VS Code Claude 插件状态，用来确认修桌面版时没有把 CLI/插件配置搞坏。重点看 `runtime.pre_repair_active_code_model` 和 `runtime.pre_repair_active_code_env`：如果修复后的探测都正常，但修复前活动子进程仍是 `default`、`claude-sonnet-*`、`claude-opus-*` 或没有拿到 Key，说明问题在旧 Code 会话模型、桌面版启动层或旧子进程，而不是 Key 本身。
 
-Kimi 伪装 `Opus 4.8` 的完整排障复盘见 [`docs/kimi-opus-bridge-runbook.md`](docs/kimi-opus-bridge-runbook.md)。核心经验是：设置页测试通过不代表 Code 子进程已经使用正确 entrypoint，必须同时核对 wrapper 日志和 transcript 里的 `entrypoint` / `model`。
+Kimi 伪装 `Opus 4.8` 的完整排障复盘见 [`docs/troubleshooting-gateway-401.md`](docs/troubleshooting-gateway-401.md)。核心经验是：设置页测试通过不代表 Code 子进程已经使用正确 entrypoint，必须同时核对 wrapper 日志和 transcript 里的 `entrypoint` / `model`。
 
 ## 已实现能力与注意事项速览
 
@@ -140,7 +140,7 @@ sudo /usr/bin/python3 patch_claude_zh_cn.py --user-home "$HOME" --prepare-offici
 - `patch_claude_zh_cn.py`：执行补丁、备份、重签名和验证的主脚本。
 - `claude-disclaimer-kimi-env-wrapper`：安装到 Claude app helper 的运行时 wrapper 模板，用于强制 Code 子进程走 `sdk-ts` 并把 UI 伪装模型改写为 provider 真实模型。
 - `docs/implementation.md`：当前功能、实现原理和维护逻辑说明。
-- `docs/kimi-opus-bridge-runbook.md`：Kimi 伪装 `Opus 4.8` 的排障复盘、验证清单和回滚方法。
+- `docs/troubleshooting-gateway-401.md`：第三方网关 Code 401 通用排障指南（不绑定特定 provider）。
 - `Logs/`：安装、诊断和会话瘦身日志目录，运行脚本后自动生成，不提交到 Git。
 - `resources/frontend-zh-CN.json`：前端界面中文翻译。
 - `resources/desktop-zh-CN.json`：桌面壳层中文翻译。

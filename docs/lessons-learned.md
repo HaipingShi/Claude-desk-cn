@@ -53,7 +53,7 @@
 cowork.two_models (index-DhPEOQY7.js): missing
 ```
 
-但 `index-DhPEOQY7.js` 中已有 `zhModelConfig18555` 和 `Kimi-k2.6`，只是没有 `Opus 4.8`。
+但 `index-*.js`（主 bundle） 中已有 `zhModelConfig18555` 和 `Kimi-k2.6`，只是没有 `Opus 4.8`。
 
 ### 根因
 
@@ -107,8 +107,8 @@ Cowork/Code 模型菜单逻辑分散在多个前端 bundle 中：
 
 | 文件 | 负责的功能 | 处理函数 |
 |------|-----------|---------|
-| `index-DhPEOQY7.js` | 主 bundle，Cowork 配置 | `patch_cowork_model_menu` |
-| `c5610fbe3-rsWnjbnF.js` | Code 页面模型选择器 | `patch_epitaxy_model_menu` |
+| `index-*.js`（主 bundle） | 主 bundle，Cowork 配置 | `patch_cowork_model_menu` |
+| `c*.js`（Code 页面 bundle） | Code 页面模型选择器 | `patch_epitaxy_model_menu` |
 | `app.asar` (`.vite/build/index.js`) | 共享模型逻辑 | `patch_hardcoded_frontend_strings` |
 
 每个文件由不同补丁函数处理，检测条件各不相同：
@@ -116,7 +116,7 @@ Cowork/Code 模型菜单逻辑分散在多个前端 bundle 中：
 - `patch_cowork_model_menu`：检查 `Qte=(e="ccr_model"` 或 `Xae`/`Wmt`
 - `patch_epitaxy_model_menu`：检查 `const hm="ccd-effort-level"` + `modelExtraSections:Lt`
 
-**陷阱**：残留可能出现在任何分支未覆盖的文件中。本次 `c5610fbe3-rsWnjbnF.js` 就是因为不符合 `patch_epitaxy_model_menu` 的检测条件而被跳过，但文件中又有旧版补丁写入的 `Opus 4.71M`。
+**陷阱**：残留可能出现在任何分支未覆盖的文件中。本次 `c*.js`（Code 页面 bundle） 就是因为不符合 `patch_epitaxy_model_menu` 的检测条件而被跳过，但文件中又有旧版补丁写入的 `Opus 4.71M`。
 
 ### 教训
 
